@@ -1,0 +1,14 @@
+INCLUDE "system.oxh"
+INCLUDE "Const.oph"
+
+PROC Main:
+	LOCAL f$(255)
+	
+	f$ = OPENFILEDIALOG$:("", 0, 0, 0)
+	IF f$ <> ""
+		LaunchDoc:(f$)
+	ENDIF
+	
+ENDP
+
+#INCLUDE "LaunchDoc.opl"

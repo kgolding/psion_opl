@@ -1,0 +1,445 @@
+REM AppFrame for the Psion 5, by K.Golding (C) 1999
+REM Version dated 16/4/2000
+	
+INCLUDE "Const.oph"
+INCLUDE "System.oxh"
+rem INCLUDE "Printer.oxh"	
+	
+CONST KUidAppFrame& = &100041BA
+CONST KAppName$ = "HSR1Rate"		REM Stick to one word upto 8 chars
+CONST Kzoommax% = 5							REM Maximum levels of zoom
+CONST KcmdN$ = "etc"						REM Commands Exit/Toolbar/Calc
+CONST KcmdS$ = "a"							REM Commands About
+
+CONST Kcopyright$ = "© K.Golding 1999-2000"
+	
+APP HSR1Rate, KUidAppFrame&
+	ICON "HSR1Icon.mbm"
+	ICON "HSR1Mask.mbm"
+ENDA
+	
+PROC Start:
+rem	DEFAULTWIN 5								REM Set default window to 256 colour mode
+	gIPRINT "Loading " + KAppName$
+	LOADM "Z:\System\OPL\Toolbar.opo"
+	tBarLink:("Main")
+ENDP
+
+#include "RateData.txt"
+
+PROC Main:
+	GLOBAL ev&(16), minit%			REM Current event, last menu item selected
+	GLOBAL redraw%							REM Set to false to prevent screen redraws whilst init.
+	GLOBAL cmdN$(26), cmdS$(26)	REM command keys allowed
+	GLOBAL fullscreenwidth%			REM Static, machines default width
+	GLOBAL fullscreenheight%		REM Static, machines default height
+	GLOBAL maxwidth%						REM maximum width after toolbar
+	GLOBAL exit%								REM Set True to exit program
+	GLOBAL zoomlevel%						REM Current zoom level (1 to Kzoommax%)
+	GLOBAL zoomfont&(Kzoommax%)	REM Zoom font ID
+	GLOBAL fontheight%					REM Height of current zoom font
+	GLOBAL fontdescent%					REM Descent of current zoom font
+
+	GLOBAL refreshrate(42, 16)
+	GLOBAL mode%, duration%, cameras%
+	GLOBAL blank&
+	
+	fullscreenwidth% = gWIDTH
+	fullscreenheight% = gHEIGHT
+		
+	Initialize:												REM Setup defaults, read ini settings & draw screen
+	
+	SystemEvent:(CMD$(3) + CMD$(2))		REM Deal with init system event
+	DoSetCmd:													REM Set up available user commands
+	
+	AppRun:														REM Call event handling loop
+	
+	WriteIniFile:											REM Save ini file settings
+ENDP
+	
+PROC DrawScreen:
+	LOCAL background%, hsr1%
+	LOCAL dummy%(6)
+	LOCAL hsr1_width%, hsr1_height%
+	LOCAL skipbitmap%
+	
+	IF NOT redraw% :RETURN :ENDIF
+	
+	background% = gLOADBIT("z:\system\data\eikon.mbm", 0, 0)
+	
+	ONERR ErrorLoadingBitmap
+	hsr1% = gLOADBIT(PARSE$("hsr1.mbm", CMD$(1), dummy%()), 0, 0)
+	hsr1_width% = gWIDTH
+	hsr1_height% = gHEIGHT
+	ONERR OFF
+	CarryOnAnyWay::
+	
+	gUSE 1														REM Use default screen
+	gUPDATE OFF
+	
+	gSETWIN 0, 0, MaxWidth%, fullscreenheight%
+	
+	gCLS
+	
+	gPATT background%, gWidth, gHeight, 3
+	gBOX gWIDTH, gHEIGHT
+
+	IF NOT skipbitmap%
+		gAT (gWIDTH - hsr1_width%) / 2, (gHEIGHT - hsr1_height%) / 2
+		gCOPY hsr1%, 0, 0, hsr1_width%, hsr1_height%, 3
+		gBOX hsr1_width%, hsr1_height%
+	ENDIF
+		
+	gAT 5,	15
+	gFONT 268435953
+	gPRINT "Sony HSR1-P Refresh Rate Calculator"
+	
+	gAT gWIDTH - gTWIDTH(Kcopyright$) - 5, gHeight - 5
+	gPRINT Kcopyright$
+	
+	UpdateToolBar:
+	UpdateScreen:
+	gUPDATE ON
+
+	gCLOSE background%
+	IF NOT skipbitmap%
+		gCLOSE hsr1%
+	ENDIF
+	RETURN
+	
+	ErrorLoadingBitmap::
+	skipbitmap% = -1
+	GOTO CarryOnAnyWay
+
+ENDP
+	
+PROC UpdateScreen:
+	gUSE 1														REM Use default screen
+ENDP
+	
+PROC UpdateToolBar:
+	LOCAL off%(6)
+		tBarSetTitle:(KAppName$)
+ENDP
+
+PROC CmdC%:										REM Calculate
+	LOCAL temp%, showresult%
+	LOCAL l&
+	
+	showresult% = 0
+	l& = cameras%
+	
+	WHILE -1
+		dINIT "Refresh Rate Calculator", 1
+		cameras% = l&
+		
+		IF showresult%
+			dTEXT "Cameras", GEN$(cameras%, 5)
+			dTEXT "Mode", Mode$:(mode%)
+			dTEXT "Duration", Duration$:(duration%)
+			dTEXT "Refresh rate per camera", FIX$(RefreshRate:(mode%, duration%, cameras%), 2, 5) + " secs"
+			dTEXT "", "", $800
+		ELSE
+			showresult% = -1
+		ENDIF
+		
+		dLONG l&, "How many cameras", 1, 16
+		Duration_dCHOICE(duration%, temp%)
+		Mode_dCHOICE(mode%, temp%)
+
+		dBUTTONS "Calculate", 13, "Close", -27
+		
+		IF DIALOG
+		ELSE
+			BREAK
+		ENDIF
+	ENDWH
+
+ENDP
+	
+PROC CmdE%:										REM File/Exit %e
+	exit% = KTrue%
+ENDP
+	
+PROC CmdK%:										REM Special/Prefernces
+	dINIT "Preferences"
+	DIALOG
+ENDP
+	
+PROC CmdSA%:									REM Special/About %A
+	dINIT "About " + KAppName$, 1 + 8
+	dTEXT "", "This software has been released into the public", 2
+	dTEXT "", "domain as FREEWARE but is " + Kcopyright$ + ",", 2
+	dTEXT "", "excluding the Sony and HSR1 trademarks", 2
+	dTEXT "", " "
+	dTEXT "", "You may contact the author at kgolding@cix.co.uk", 2
+	dBUTTONS "OK", 13
+	DIALOG
+ENDP
+	
+PROC CmdT%:										REM Toolbar on/off %t
+	IF tbVis%
+		tBarHide:
+		maxwidth% = fullscreenwidth%
+	ELSE
+		tBarShow:
+		maxwidth% = fullscreenwidth% - tbWidth%
+	ENDIF
+	DrawScreen:
+ENDP
+		
+PROC DoSetCmd:								REM Set up user commands
+REM This is called at the start of the program, after each call to
+REM a "Cmd" procedure, and whenever the data file changes
+	cmdN$ = KcmdN$							REM Enable standard commands
+	cmdS$ = KcmdS$
+ENDP
+	
+PROC DoMenu:									REM Display users Menu
+	mINIT
+	mCARD "Application", "Calculate", %c, "About...", -%A, "Close", %e
+	mCARD "View", "Toobar", %t OR tbMenuSym%
+	DoCommandKey:(MENU(minit%))
+ENDP
+	
+PROC KeyPressed:(k%, shift%)	REM Deal with direct (non ctrl) keys
+	IF k% = %c
+		CmdC%:
+	ELSEIF k% = 27
+		CmdE%:
+	ENDIF
+ENDP
+	
+PROC PenDown:(wid%, x%, y%)		REM Pen Down
+ENDP
+	
+PROC PenUp:(wid%, x%, y%)			REM Pen Up
+ENDP
+	
+PROC PenDrag:(wid%, x%, y%)		REM Pen Dragged
+ENDP
+	
+PROC AppGotFocus:							REM Application has got focus
+ENDP
+	
+PROC AppLostFocus:						REM Application has lost focus
+ENDP
+	
+PROC MachineOn:								REM Machine turned on
+ENDP
+	
+PROC DoCutCopyPaste:					REM Sidebar menu cut/copy/paste
+	LOCAL ret%
+	ret% = mPOPUP(5, 40, 0, "Cut", m%:(%x), "Copy", m%:(%c), "Paste", m%:(%v))
+	IF ret% <> 0
+		DoCommandKey:(ret%)
+	ENDIF
+ENDP
+	
+PROC DoIRTxRx:								REM Sidebar menu infrared send/receive
+	LOCAL ret%
+	REM Take out the "+ $1000" to enable send/receive
+	ret% = mPOPUP(5, 90, 0, "Infrared send", 1 + $1000, "Infrared receive", 2 + $1000)
+	IF ret% = 1
+		REM Do Infrared Send
+	ELSEIF ret% = 2
+		REM Do Infrared Recieve
+	ENDIF
+ENDP
+	
+PROC Zoom:(by%)								REM Zoom in/out
+	LOCAL i&(48)
+	
+	zoomlevel% = zoomlevel% + by%
+	IF zoomlevel% < 1
+		zoomlevel% = Kzoommax%
+	ELSEIF zoomlevel% > Kzoommax%
+		zoomlevel% = 1
+	ENDIF
+	gFONT zoomfont&(zoomlevel%)
+	gINFO32 i&()
+	fontheight% = i&(3) + i&(4)		REM Set global total height off font
+	fontdescent% = i&(4)					REM Set global descent off font
+	DrawScreen:
+ENDP
+	
+	
+PROC ReadIniFile:								REM Get ini file settings
+	LOCAL name$(255), off%(6)
+	name$ = PARSE$(".ini", CMD$(1), off%())
+	ONERR ErrReadIniFile
+	OPEN """" + name$ + """", I, lastusedfile$, zoomlevel%, tbVis%, mode%, duration%, cameras%
+	zoomlevel% = I.zoomlevel%
+	tbVis% = I.tbVis%
+	mode% = I.mode%
+	duration% = I.duration%
+	cameras% = I.cameras%
+	CLOSE
+ErrReadIniFile::
+	REM Ignore error and don't use ini file settings!
+	ONERR OFF
+ENDP
+	
+PROC WriteIniFile:							REM Save ini file settings
+	LOCAL name$(255), off%(6)
+	
+	name$ = PARSE$(".ini", CMD$(1), off%())
+	TRAP DELETE name$
+	CREATE """" + name$ + """", I, lastusedfile$, zoomlevel%, tbVis%, mode%, duration%, cameras%
+	INSERT
+	I.zoomlevel% = zoomlevel%
+	I.tbVis% = tbVis%
+	I.mode% = mode%
+	I.duration% = duration%
+	I.cameras% = cameras%
+	PUT
+	CLOSE
+ENDP
+	
+PROC SystemEvent:(s$)						REM Deal with system event
+	LOCAL a$(1)
+	a$ = LEFT$(s$, 1)
+	IF a$ = "X"
+		exit% = KTrue%
+	ENDIF
+ENDP
+	
+PROC AppRun:											REM The main event handling loop
+	LOCAL k%, shift%
+	LOCAL w%, x%, y%
+	
+	DO
+		LOCK OFF
+		GETEVENT32 ev&()
+		IF (ev&(1) = $406) OR (ev&(1) = $407) OR (ev&(1) = $409) OR (ev&(1) = $40A)
+			REM Throw away keydown & keyup, pen enter/exit contact
+			CONTINUE
+		ENDIF
+		LOCK  ON
+		IF (ev&(1) AND $400) = 0			REM Keyboard event
+			k% = ev&(1)
+			shift% = (ev&(4) AND 2)
+			IF k% = KKeyMenu%
+				DoMenu:
+			ELSEIF (ev&(4) AND 4) = 4		REM Ctrl key
+				DoCommandKey:(96 + k% - shift% * 16)
+			ELSE												REM Normal key
+				KeyPressed:(k%, shift%)
+			ENDIF
+		ELSEIF ev&(1) = $408					REM Pen event
+			IF tBarOffer%:(ev&(3), ev&(4), ev&(6), ev&(7))
+				DoSetCmd:
+				CONTINUE
+			ELSE
+				w% = ev&(3)
+				x% = ev&(6)
+				y% = ev&(7)
+				IF ev&(4) = 0							REM Pen Down
+					PenDown:(w%, x%, y%)
+				ELSEIF ev&(4) = 1					REM Pen Up
+					PenUp:(w%, x%, y%)
+				ELSEIF ev&(4) = 6					REM Pen Dragged
+					PenDrag:(w%, x%, y%)
+				ENDIF
+			ENDIF
+		ELSEIF ev&(1) = 10000					REM SidebarMenu
+			DoMenu:
+		ELSEIF ev&(1) = 10001					REM Cut/Copy/Paste
+			DoCutCopyPaste:
+		ELSEIF ev&(1) = 10002					REM IR Rx/Tx
+			DoIRTxRx:
+		ELSEIF ev&(1) = 10003					REM Zoom out
+			DoCommandKey:(%m)
+		ELSEIF ev&(1) = 10004					REM Zoom in
+			DoCommandKey:(%M)
+		ELSEIF ev&(1) = $401					REM App got focus
+			AppGotFocus:
+		ELSEIF ev&(1) = $402					REM App lost focus
+			AppLostFocus:
+		ELSEIF ev&(1) = $403					REM Machine switched on
+			MachineOn:
+		ELSEIF ev&(1) = $404					REM System event
+			SystemEvent:(GETCMD$)
+		ELSE 													REM Unknown event
+			gIPRINT "Unknown event " + GEN$(ev&(1), 8) + ", " + GEN$(ev&(2), 8) + ", " + GEN$(ev&(3), 8)
+		ENDIF
+	UNTIL exit%
+ENDP
+	
+PROC DoCommandKey:(k%)						REM Calls PROC's as required
+	LOCAL k$(1)
+	
+	k$ = CHR$(k%)
+	IF k$ > "Z"
+		IF LOC(cmdN$, k$)
+			@%("Cmd" + k$):
+			DoSetCmd:
+		ENDIF
+	ELSE
+		IF LOC(cmdS$, k$)
+			@%("CmdS" + k$):
+			DoSetCmd:
+		ENDIF
+	ENDIF
+ENDP
+	
+PROC NotAllowed%:(k%)						REM Returns true if command allowed
+	IF ((k% <= ASC("Z")) AND LOC(cmdS$, CHR$(k%))) OR ((k% >= ASC("a")) AND LOC(cmdN$, CHR$(k%)))
+		RETURN KFalse%
+	ELSE
+		gIPRINT "This item is not available", KBusyTopRight%
+		RETURN KTrue%
+	ENDIF
+ENDP
+	
+PROC m%:(k%)										REM Returns menu item dimmed if applicable
+	IF ((k% <= ASC("Z")) AND LOC(cmdS$, CHR$(k%))) OR ((k% >= ASC("a")) AND LOC(cmdN$, CHR$(k%)))
+		RETURN k%
+	ELSE
+		RETURN k% OR $1000
+	ENDIF
+ENDP
+	
+PROC Initialize:
+	
+	SETCOMPUTEMODE:(KComputeModeOff&)	REM Give me speed, I'm a good program
+	SETFLAGS &010001									REM Enable machiine on events & auto compact of db
+	redraw% = KFalse%									REM Switch off screen drawing whilst init.
+	fullscreenwidth% = gWIDTH					REM Before default window changes
+	fullscreenheight% = gHEIGHT				REM As above
+	zoomlevel% = 3										REM Set zoom to middle
+	zoomfont&(1) = KFontArialNormal8&	REM Zoom font sizes
+	zoomfont&(2) = KFontArialNormal11&
+	zoomfont&(3) = KFontArialNormal13&
+	zoomfont&(4) = KFontArialNormal15&
+	zoomfont&(5) = KFontArialNormal18&
+
+	blank& = gCREATEBIT(5,0)
+	gUSE 1
+	tBarInit:(KAppName$, gWIDTH, gHEIGHT)
+	tBarButt:("c", 1, "Calculate", 0, blank&, blank&, 0)
+	tBarButt:("A", 2, "About", 0, blank&, blank&, 0)
+	tBarButt:("e", 4, "Exit", 0, blank&, blank&, 0)
+
+	REM Set up first time defaults
+	mode% = 3
+	duration% = 27	
+	cameras% = 4
+	tbVis% = -1
+	
+	ReadIniFile:											REM Get ini file settings
+	
+	tbVis% = NOT tbVis%								REM Update toolbar
+	CmdT%:
+	
+	redraw% = KTrue%
+	Zoom:(0)													REM Set font for zoom level	& draw screen
+	
+	InitData:
+	
+ENDP
+	
+PROC Check%:(option%, flag%)				REM Returns true if option contains flag
+	RETURN (option% OR flag%) = flag%
+ENDP
+

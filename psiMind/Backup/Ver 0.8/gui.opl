@@ -1,0 +1,146 @@
+PROC DrawDB:
+	LOCAL cX%, cY%, x%, y%, i%, items%, step%
+	LOCAL mainTitle$(40), mainParent&, mainFlags%
+	LOCAL subitems%, subx%, suby%, ang%, step2%
+	LOCAL j%, k%
+
+	gui_counter% = 0
+	
+	cX% = gWIDTH / 2
+	cY% = gHEIGHT / 2
+
+	IF mainitem& = 0
+		mainitem& = 1
+	ENDIF
+	
+	REM Get main item
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE id=" + GEN$(mainitem&, 20), B, id&, parent&, title$, flags%
+	mainTitle$ = B.title$
+	mainParent& = B.Parent&
+	mainFlags% = B.flags%
+	USE B	:	CLOSE
+	
+	j% = NumberChildren%:(mainitem&)
+	IF mainParent& > 0
+		j%++
+	ENDIF
+	IF (j% = 5) OR (j% = 7)
+		i% = -75
+	ELSEIF (j% = 8)
+		i% = -60
+	ELSEIF (j% = 9)
+		i% = -90
+	ELSE
+		i% = -70
+	ENDIF
+	
+	IF mainParent& > 0
+		gSTYLE 1
+		Rem Get and Draw Parent
+		OPEN """" + fname$ + """ SELECT * FROM items WHERE id=" + GEN$(mainParent&, 20), B, id&, parent&, title$, flags%
+		x% = SIN(RAD(i%)) * (gWIDTH / 3)
+		y% = COS(RAD(i%)) * ((gHEIGHT / 2) - fontheight%)
+		gAT cX%, cY%
+		gLINEBY x%, -y%
+		DrawText:(cX% + x%, cY% - y%, B.title$, B.id&, B.flags%)
+		USE B	:	CLOSE
+	ENDIF
+
+	REM Get and draw child items
+	gSTYLE 0
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE parent=" + GEN$(mainitem&, 20), B, id&, parent&, title$, flags%
+	LAST
+	
+	items% = COUNT + 1
+	IF mainitem& = 1
+		items%--
+	ENDIF
+	
+	IF items% > 0
+		step% = (360 / items%)
+		FIRST
+		WHILE NOT EOF				REM First ring of items
+			i% = i% + step%
+	
+			x% = SIN(RAD(i%)) * (gWIDTH / 6)
+			y% = COS(RAD(i%)) * (gHEIGHT / 4)
+			
+			gAT cX%, cY%
+			gLINEBY x%, -y%
+			
+			REM Draw sub children
+			IF NumberChildren%:(B.id&) > 0
+				OPEN """" + fname$ + """ SELECT * FROM items WHERE parent=" + GEN$(B.id&, 20), C, id&, parent&, title$, flags%
+				LAST
+				subitems% = COUNT REM + 1
+				FIRST
+				step2% = step% / subitems%
+				ang% = i% - (step2% / 2)
+				ZoomTo:(zoomlevel% - 2)
+				WHILE NOT EOF				REM Second ring of items
+					subx% = cx% + x% + SIN(RAD(ang%)) * (gWIDTH / 5)
+					suby% = cy% - y% - COS(RAD(ang%)) * ((gHEIGHT / 3) - fontheight%)
+					gAT cx% + x%, cy% - y%
+					gLINETO subx%, suby%
+					
+					REM Draw sub sub links
+					j% = NumberChildren%:(C.id&)
+					k% = ang% - (j% * 2)
+					WHILE j% > 0
+						gAT subx%, suby%
+						gLINEBY SIN(RAD(k%)) * (gWIDTH / 2), -COS(RAD(k%)) * gHEIGHT
+						k% = k% + 4
+						j%--
+					ENDWH
+					DrawText:(subx%, suby%, C.title$, C.id&, C.flags%)
+					ang% = ang% + step2%
+					USE C	:	NEXT
+				ENDWH
+				USE C	:	CLOSE
+			ENDIF
+			
+			ZoomTo:(zoomlevel% - 1)
+			DrawText:(cX% + x%, cY% - y%, B.title$, B.id&, B.flags%)
+			
+			USE B :	NEXT
+		ENDWH
+	ENDIF
+	CLOSE
+	
+	REM Draw main item over the link lines
+	IF mainitem& = 1
+		gSTYLE 1
+	ENDIF
+
+	ZoomTo:(zoomlevel%)
+	DrawText:(cX%, cY%, mainTitle$, mainItem&, mainFlags%)
+	
+ENDP
+
+PROC DrawText:(x%, y%, title$, id&, flags%)
+	LOCAL xs%, xa%, ya%, s$(50)
+	
+	s$ = title$
+	IF (flags% AND 1) = 1		REM Has attached file
+		s$ = s$ + "+"
+	ENDIF
+	
+	xs% = gTWIDTH(s$)
+	xa% = x% - (xs% / 2)
+	ya% = y% + (fontheight% / 2) - fontdescent%
+
+	gAT xa%, ya%	
+	gPRINTB s$, xs%, 3
+
+	gui_counter%++
+	gui_id&(gui_counter%) = id&
+	gui_x1%(gui_counter%) = xa% - 2
+	gui_y1%(gui_counter%) = y% - (fontheight% / 2) - 2
+	gui_x2%(gui_counter%) = xa% + xs% + 4
+	gui_y2%(gui_counter%) = y% + (fontheight% / 2) + 4
+
+REM Draw box around touch snesitive area
+REM	gAT gui_x1%(gui_counter%), gui_y1%(gui_counter%)
+REM	gBOX gui_x2%(gui_counter%) - gui_x1%(gui_counter%), gui_y2%(gui_counter%) - gui_y1%(gui_counter%)
+	
+ENDP

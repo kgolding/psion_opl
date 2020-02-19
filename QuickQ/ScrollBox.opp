@@ -1,0 +1,91 @@
+PROC GSBImageCB:(id%,value&)
+	gUSE GSBportal%
+
+	gAT 0,0
+	IF id% = GSBvert%
+		REM Copy bitmap with Y value being current scrollbar value
+		gCOPY GSBbitmap%, GSBx%, value&, gWIDTH, gHEIGHT, 3
+		GSBy% = value&
+	ELSEIF id% = GSBhoriz%
+		REM Copy bitmap with X value being current scrollbar value
+		gCOPY GSBbitmap%, value&, GSBy%, gWIDTH, gHEIGHT, 3
+		GSBx% = value&
+	ENDIF
+ENDP
+
+PROC CreateScrollBox:(x%, y%, w%, h%)
+	LOCAL bw&, bh&, ww&, wh&
+
+	GSBx% = 0
+	GSBy% = 0
+	
+	gUSE GSBbitmap%
+	bw& = gWIDTH + 1
+	bh& = gHEIGHT + 1
+	
+	ww& = w% - SBarWidth%:
+	wh& = h% - SBarWidth%:
+		
+	REM Create the scrollbox window
+	GSBportal%=gCREATE(x%, y%, ww&, wh&, 1, $102)
+
+	REM Create horizontal scrollbar
+	GSBhoriz%=SBarCreate%:(KFalse%, x%, wh& + y%, ww&, "GSBImageCB", KTrue%)
+
+	REM Create vertical scrollbar
+	GSBvert%=SBarCreate%:(KTrue%, x% + ww&, y%, wh&, "GSBImageCB", KTrue%)
+
+	REM Set horizontal scrollbar settings
+	REM Maximum value is bitmap width
+	SBarChange:(GSBhoriz%, &0, ww&, &0, bw&, INT(1), INT(15))
+
+	REM Set vertical scrollbar settings
+	REM Maximum value is bitmap height
+	SBarChange:(GSBvert%, &0, wh&, &0, bh&, INT(1), INT(15))
+	
+	REM Draw init image
+	GSBImageCB:(GSBvert%, &0)
+ENDP
+
+PROC CloseScrollBox:
+	IF GSBbitmap% > 0
+		SBarClose:(GSBhoriz%)
+		SBarClose:(GSBvert%)
+		gCLOSE GSBbitmap%
+		GSBbitmap% = 0
+	ENDIF
+ENDP
+
+PROC OPM_FileLoc$:(file$)
+	IF EXIST ("C:"+file$)
+		RETURN "C:"+file$
+	ELSE
+		IF EXIST ("D:"+file$)
+			RETURN "D:"+file$
+		ELSE
+			RETURN ""	REM File does not exist
+		ENDIF
+	ENDIF
+ENDP
+
+REM -------------------------------------
+REM Loads in a module held in /System/Opm
+REM -------------------------------------
+PROC OPM_LoadModule:(modulename$)
+	LOCAL f$(255)
+
+	f$=OPM_FileLoc$:("\System\Opm\"+modulename$+".opm")
+	IF f$<>""
+		TRAP LOADM f$ :REM Load the module
+	ELSE
+		ALERT("Cannot find the OPM file: \System\Opm\"+modulename$+".opm","You must install the OPM before this application will run")
+		STOP
+	ENDIF
+ENDP
+
+REM --------------------------------
+REM Unloads in a module from memory
+REM --------------------------------
+PROC OPM_UnloadModule:(modulename$)
+	TRAP UNLOADM OPM_FileLoc$:("\System\Opm\"+modulename$+".opm")
+ENDP

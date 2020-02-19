@@ -1,0 +1,31 @@
+PROC SetBit%:(flag%, bit%, value%)
+	LOCAL mask&
+	
+	IF (bit% < 1) OR (bit% > 15)
+		RAISE -1
+	ELSEIF bit% <= 2
+		mask& = bit%
+	ELSE
+		mask& = &2 ** (bit% - 1)
+	ENDIF
+	
+	IF value%			REM Set bit
+		RETURN flag% OR mask&
+	ELSE					REM Clear bit
+		RETURN flag% AND XOR&:(mask&, $FFFF)
+	ENDIF
+ENDP
+
+PROC GetBit%:(flag%, bit%)
+	LOCAL mask&
+	
+	IF (bit% < 1) OR (bit% > 15)
+		RAISE -1
+	ELSEIF bit% <= 2
+		mask& = bit%
+	ELSE
+		mask& = &2 ** (bit% - 1)
+	ENDIF
+	
+	RETURN (flag% AND mask&) = mask&
+ENDP

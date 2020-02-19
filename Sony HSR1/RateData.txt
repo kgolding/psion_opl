@@ -1,0 +1,884 @@
+#define Duration_dCHOICE(choice, tempint) \
+	tempint = 1 :\
+	WHILE tempint < 27 :\
+		dCHOICE choice, "Recording Time", Duration$:(tempint) + ",..." :\
+		tempint++ :\
+	ENDWH :\
+	dCHOICE choice, "Recording time", Duration$:(tempint)
+
+#define Mode_dCHOICE(choice, tempint) \
+	tempint = 1 :\
+	WHILE tempint < 4 :\
+		dCHOICE choice, "Recording Mode", Mode$:(tempint) + ",..." :\
+		tempint++ :\
+	ENDWH :\
+	dCHOICE choice, "Recording Mode", Mode$:(tempint)
+
+	
+PROC RateDataTest:
+	Global refreshrate(42, 16)
+	LOCAL i%, duration%, mode%
+	
+	InitData:
+		
+	dInit "RateData Test"
+	
+	Duration_dCHOICE(duration%, i%)
+	
+	Mode_dCHOICE(mode%, i%)
+	
+	DIALOG
+	
+ENDP
+
+PROC RefreshRate:(mode%, duration%, cameras%)
+	LOCAL col%
+	
+	IF mode% = 1
+		col% = duration% + 15
+	ELSEIF mode% = 2
+		col% = duration% + 10
+	ELSEIF mode% = 3
+		col% = duration% + 5
+	ELSE
+		col% = duration%
+	ENDIF
+	
+	Return refreshrate(col%, cameras%)
+ENDP
+
+PROC Duration$:(i%)
+	If (i% < 1) OR (i% > 38)
+		Raise -1
+	Endif
+	
+	VECTOR i%
+		d1,d2,d3,d4,d5,d6,d7,d8,d9,d10,d11,d12,d13,d14,d15,d16,d17,d18
+		d19,d20,d21,d22,d23,d24,d25,d26,d27
+	ENDV
+	
+	d1::
+	Return "960hr (40 days)"
+	
+	d2::
+	Return "768hr"
+	
+	d3::
+	Return "720hr (1 month)"
+	
+	d4::
+	Return "672hr"
+	
+	d5::
+	Return "576hr"
+	
+	d6::
+	Return "480hr (20 days)"
+	
+	d7::
+	Return "384hr"
+	
+	d8::
+	Return "360hr"
+	
+	d9::
+	Return "336hr (2 weeks)"
+	
+	d10::
+	Return "288hr"
+	
+	d11::
+	Return "240hr (10 days)"
+	
+	d12::
+	Return "192hr"
+	
+	d13::
+	Return "180hr"
+	
+	d14::
+	Return "168hr (1 week)"
+	
+	d15::
+	Return "144hr (6 days)"
+	
+	d16::
+	Return "120hr (5 days)"
+	
+	d17::
+	Return "96hr (4 days)"
+	
+	d18::
+	Return "90hr"
+	
+	d19::
+	Return "84hr"
+	
+	d20::
+	Return "72hr (3 days)"
+	
+	d21::
+	Return "60hr"
+	
+	d22::
+	Return "48hr (2 days)"
+	
+	d23::
+	Return "45hr"
+	
+	d24::
+	Return "42hr"
+	
+	d25::
+	Return "36hr"
+	
+	d26::
+	Return "30hr"
+	
+	d27::
+	Return "24hr (1 day)"
+	
+ENDP
+
+Proc Mode$:(i%)
+	If (i% < 1) OR (i% > 4)
+		Raise -1
+	Endif
+	
+	VECTOR i%
+		low, middle, high, super
+	ENDV
+	
+	low::
+	Return "Low"
+	
+	middle::
+	Return "Middle"
+	
+	high::
+	Return "High"
+	
+	super::
+	Return "Super"
+	
+Endp
+
+Proc InitData:
+
+	refreshrate(1,1) = 4.27
+	refreshrate(1,2) = 8.53
+	refreshrate(1,3) = 12.80
+	refreshrate(1,4) = 17.07
+	refreshrate(1,5) = 21.33
+	refreshrate(1,6) = 25.60
+	refreshrate(1,7) = 29.87
+	refreshrate(1,8) = 34.13
+	refreshrate(1,9) = 38.40
+	refreshrate(1,10) = 42.67
+	refreshrate(1,11) = 46.93
+	refreshrate(1,12) = 51.20
+	refreshrate(1,13) = 55.47
+	refreshrate(1,14) = 59.73
+	refreshrate(1,15) = 64.00
+	refreshrate(1,16) = 68.27
+	
+
+	refreshrate(2,1) = 3.41
+	refreshrate(2,2) = 6.83
+	refreshrate(2,3) = 10.24
+	refreshrate(2,4) = 13.65
+	refreshrate(2,5) = 17.07
+	refreshrate(2,6) = 20.48
+	refreshrate(2,7) = 23.89
+	refreshrate(2,8) = 27.31
+	refreshrate(2,9) = 30.72
+	refreshrate(2,10) = 34.13
+	refreshrate(2,11) = 37.55
+	refreshrate(2,12) = 40.96
+	refreshrate(2,13) = 44.37
+	refreshrate(2,14) = 47.79
+	refreshrate(2,15) = 51.20
+	refreshrate(2,16) = 54.61
+
+
+	refreshrate(3,1) = 3.20
+	refreshrate(3,2) = 6.40
+	refreshrate(3,3) = 9.60
+	refreshrate(3,4) = 12.80
+	refreshrate(3,5) = 16.00
+	refreshrate(3,6) = 19.20
+	refreshrate(3,7) = 22.40
+	refreshrate(3,8) = 25.60
+	refreshrate(3,9) = 28.80
+	refreshrate(3,10) = 32.00
+	refreshrate(3,11) = 35.20
+	refreshrate(3,12) = 38.40
+	refreshrate(3,13) = 41.60
+	refreshrate(3,14) = 44.80
+	refreshrate(3,15) = 48.00
+	refreshrate(3,16) = 51.20
+
+	refreshrate(4,1) = 2.99
+	refreshrate(4,2) = 5.97
+	refreshrate(4,3) = 8.96
+	refreshrate(4,4) = 11.95
+	refreshrate(4,5) = 14.93
+	refreshrate(4,6) = 17.92
+	refreshrate(4,7) = 20.91
+	refreshrate(4,8) = 23.89
+	refreshrate(4,9) = 26.88
+	refreshrate(4,10) = 29.87
+	refreshrate(4,11) = 32.85
+	refreshrate(4,12) = 35.84
+	refreshrate(4,13) = 38.83
+	refreshrate(4,14) = 41.81
+	refreshrate(4,15) = 44.80
+	refreshrate(4,16) = 47.79
+
+	refreshrate(5,1) = 2.56
+	refreshrate(5,2) = 5.12
+	refreshrate(5,3) = 7.68
+	refreshrate(5,4) = 10.24
+	refreshrate(5,5) = 12.80
+	refreshrate(5,6) = 15.36
+	refreshrate(5,7) = 17.92
+	refreshrate(5,8) = 20.48
+	refreshrate(5,9) = 23.04
+	refreshrate(5,10) = 25.60
+	refreshrate(5,11) = 28.16
+	refreshrate(5,12) = 30.72
+	refreshrate(5,13) = 33.28
+	refreshrate(5,14) = 35.84
+	refreshrate(5,15) = 38.40
+	refreshrate(5,16) = 40.96
+
+	refreshrate(6,1) = 2.13
+	refreshrate(6,2) = 4.27
+	refreshrate(6,3) = 6.40
+	refreshrate(6,4) = 8.53
+	refreshrate(6,5) = 10.67
+	refreshrate(6,6) = 12.80
+	refreshrate(6,7) = 14.93
+	refreshrate(6,8) = 17.07
+	refreshrate(6,9) = 19.20
+	refreshrate(6,10) = 21.33
+	refreshrate(6,11) = 23.47
+	refreshrate(6,12) = 25.60
+	refreshrate(6,13) = 27.73
+	refreshrate(6,14) = 29.87
+	refreshrate(6,15) = 32.00
+	refreshrate(6,16) = 34.13
+
+	refreshrate(7,1) = 1.71
+	refreshrate(7,2) = 3.41
+	refreshrate(7,3) = 5.12
+	refreshrate(7,4) = 6.83
+	refreshrate(7,5) = 8.53
+	refreshrate(7,6) = 10.24
+	refreshrate(7,7) = 11.95
+	refreshrate(7,8) = 13.65
+	refreshrate(7,9) = 15.36
+	refreshrate(7,10) = 17.07
+	refreshrate(7,11) = 18.77
+	refreshrate(7,12) = 20.48
+	refreshrate(7,13) = 22.19
+	refreshrate(7,14) = 23.89
+	refreshrate(7,15) = 25.60
+	refreshrate(7,16) = 27.31
+
+	refreshrate(8,1) = 1.60
+	refreshrate(8,2) = 3.20
+	refreshrate(8,3) = 4.80
+	refreshrate(8,4) = 6.40
+	refreshrate(8,5) = 8.00
+	refreshrate(8,6) = 9.60
+	refreshrate(8,7) = 11.20
+	refreshrate(8,8) = 12.80
+	refreshrate(8,9) = 14.40
+	refreshrate(8,10) = 16.00
+	refreshrate(8,11) = 17.60
+	refreshrate(8,12) = 19.20
+	refreshrate(8,13) = 20.80
+	refreshrate(8,14) = 22.40
+	refreshrate(8,15) = 24.00
+	refreshrate(8,16) = 25.60
+
+	refreshrate(9,1) = 1.49
+	refreshrate(9,2) = 2.99
+	refreshrate(9,3) = 4.48
+	refreshrate(9,4) = 5.97
+	refreshrate(9,5) = 7.47
+	refreshrate(9,6) = 8.96
+	refreshrate(9,7) = 10.45
+	refreshrate(9,8) = 11.95
+	refreshrate(9,9) = 13.44
+	refreshrate(9,10) = 14.93
+	refreshrate(9,11) = 16.43
+	refreshrate(9,12) = 17.92
+	refreshrate(9,13) = 19.41
+	refreshrate(9,14) = 20.91
+	refreshrate(9,15) = 22.40
+	refreshrate(9,16) = 23.89
+
+	refreshrate(10,1) = 1.28
+	refreshrate(10,2) = 2.56
+	refreshrate(10,3) = 3.84
+	refreshrate(10,4) = 5.12
+	refreshrate(10,5) = 6.40
+	refreshrate(10,6) = 7.68
+	refreshrate(10,7) = 8.96
+	refreshrate(10,8) = 10.24
+	refreshrate(10,9) = 11.52
+	refreshrate(10,10) = 12.80
+	refreshrate(10,11) = 14.08
+	refreshrate(10,12) = 15.36
+	refreshrate(10,13) = 16.64
+	refreshrate(10,14) = 17.92
+	refreshrate(10,15) = 19.20
+	refreshrate(10,16) = 20.48
+
+	refreshrate(11,1) = 1.07
+	refreshrate(11,2) = 2.13
+	refreshrate(11,3) = 3.20
+	refreshrate(11,4) = 4.27
+	refreshrate(11,5) = 5.33
+	refreshrate(11,6) = 6.40
+	refreshrate(11,7) = 7.47
+	refreshrate(11,8) = 8.53
+	refreshrate(11,9) = 9.60
+	refreshrate(11,10) = 10.67
+	refreshrate(11,11) = 11.73
+	refreshrate(11,12) = 12.80
+	refreshrate(11,13) = 13.87
+	refreshrate(11,14) = 14.93
+	refreshrate(11,15) = 16.00
+	refreshrate(11,16) = 17.07
+
+	refreshrate(12,1) = 0.85
+	refreshrate(12,2) = 1.71
+	refreshrate(12,3) = 2.56
+	refreshrate(12,4) = 3.41
+	refreshrate(12,5) = 4.27
+	refreshrate(12,6) = 5.12
+	refreshrate(12,7) = 5.97
+	refreshrate(12,8) = 6.83
+	refreshrate(12,9) = 7.68
+	refreshrate(12,10) = 8.53
+	refreshrate(12,11) = 9.39
+	refreshrate(12,12) = 10.24
+	refreshrate(12,13) = 11.09
+	refreshrate(12,14) = 11.95
+	refreshrate(12,15) = 12.80
+	refreshrate(12,16) = 13.65
+
+	refreshrate(13,1) = 0.80
+	refreshrate(13,2) = 1.60
+	refreshrate(13,3) = 2.40
+	refreshrate(13,4) = 3.20
+	refreshrate(13,5) = 4.00
+	refreshrate(13,6) = 4.80
+	refreshrate(13,7) = 5.60
+	refreshrate(13,8) = 6.40
+	refreshrate(13,9) = 7.20
+	refreshrate(13,10) = 8.00
+	refreshrate(13,11) = 8.80
+	refreshrate(13,12) = 9.60
+	refreshrate(13,13) = 10.40
+	refreshrate(13,14) = 11.20
+	refreshrate(13,15) = 12.00
+	refreshrate(13,16) = 12.80
+
+	refreshrate(14,1) = 0.75
+	refreshrate(14,2) = 1.49
+	refreshrate(14,3) = 2.24
+	refreshrate(14,4) = 2.99
+	refreshrate(14,5) = 3.73
+	refreshrate(14,6) = 4.48
+	refreshrate(14,7) = 5.23
+	refreshrate(14,8) = 5.97
+	refreshrate(14,9) = 6.72
+	refreshrate(14,10) = 7.47
+	refreshrate(14,11) = 8.21
+	refreshrate(14,12) = 8.96
+	refreshrate(14,13) = 9.71
+	refreshrate(14,14) = 10.45
+	refreshrate(14,15) = 11.20
+	refreshrate(14,16) = 11.95
+
+	refreshrate(15,1) = 0.64
+	refreshrate(15,2) = 1.28
+	refreshrate(15,3) = 1.92
+	refreshrate(15,4) = 2.56
+	refreshrate(15,5) = 3.20
+	refreshrate(15,6) = 3.84
+	refreshrate(15,7) = 4.48
+	refreshrate(15,8) = 5.12
+	refreshrate(15,9) = 5.76
+	refreshrate(15,10) = 6.40
+	refreshrate(15,11) = 7.04
+	refreshrate(15,12) = 7.68
+	refreshrate(15,13) = 8.32
+	refreshrate(15,14) = 8.96
+	refreshrate(15,15) = 9.60
+	refreshrate(15,16) = 10.24
+
+	refreshrate(16,1) = 0.53
+	refreshrate(16,2) = 1.07
+	refreshrate(16,3) = 1.60
+	refreshrate(16,4) = 2.13
+	refreshrate(16,5) = 2.67
+	refreshrate(16,6) = 3.20
+	refreshrate(16,7) = 3.73
+	refreshrate(16,8) = 4.27
+	refreshrate(16,9) = 4.80
+	refreshrate(16,10) = 5.33
+	refreshrate(16,11) = 5.87
+	refreshrate(16,12) = 6.40
+	refreshrate(16,13) = 6.93
+	refreshrate(16,14) = 7.47
+	refreshrate(16,15) = 8.00
+	refreshrate(16,16) = 8.53
+
+	refreshrate(17,1) = 0.43
+	refreshrate(17,2) = 0.85
+	refreshrate(17,3) = 1.28
+	refreshrate(17,4) = 1.71
+	refreshrate(17,5) = 2.13
+	refreshrate(17,6) = 2.56
+	refreshrate(17,7) = 2.99
+	refreshrate(17,8) = 3.41
+	refreshrate(17,9) = 3.84
+	refreshrate(17,10) = 4.27
+	refreshrate(17,11) = 4.69
+	refreshrate(17,12) = 5.12
+	refreshrate(17,13) = 5.55
+	refreshrate(17,14) = 5.97
+	refreshrate(17,15) = 6.40
+	refreshrate(17,16) = 6.83
+
+	refreshrate(18,1) = 0.40
+	refreshrate(18,2) = 0.80
+	refreshrate(18,3) = 1.20
+	refreshrate(18,4) = 1.60
+	refreshrate(18,5) = 2.00
+	refreshrate(18,6) = 2.40
+	refreshrate(18,7) = 2.80
+	refreshrate(18,8) = 3.20
+	refreshrate(18,9) = 3.60
+	refreshrate(18,10) = 4.00
+	refreshrate(18,11) = 4.40
+	refreshrate(18,12) = 4.80
+	refreshrate(18,13) = 5.20
+	refreshrate(18,14) = 5.60
+	refreshrate(18,15) = 6.00
+	refreshrate(18,16) = 6.40
+
+	refreshrate(19,1) = 0.37
+	refreshrate(19,2) = 0.75
+	refreshrate(19,3) = 1.12
+	refreshrate(19,4) = 1.49
+	refreshrate(19,5) = 1.87
+	refreshrate(19,6) = 2.24
+	refreshrate(19,7) = 2.61
+	refreshrate(19,8) = 2.99
+	refreshrate(19,9) = 3.36
+	refreshrate(19,10) = 3.73
+	refreshrate(19,11) = 4.11
+	refreshrate(19,12) = 4.48
+	refreshrate(19,13) = 4.85
+	refreshrate(19,14) = 5.23
+	refreshrate(19,15) = 5.60
+	refreshrate(19,16) = 5.97
+
+	refreshrate(20,1) = 0.32
+	refreshrate(20,2) = 0.64
+	refreshrate(20,3) = 0.96
+	refreshrate(20,4) = 1.28
+	refreshrate(20,5) = 1.60
+	refreshrate(20,6) = 1.92
+	refreshrate(20,7) = 2.24
+	refreshrate(20,8) = 2.56
+	refreshrate(20,9) = 2.88
+	refreshrate(20,10) = 3.20
+	refreshrate(20,11) = 3.52
+	refreshrate(20,12) = 3.84
+	refreshrate(20,13) = 4.16
+	refreshrate(20,14) = 4.48
+	refreshrate(20,15) = 4.80
+	refreshrate(20,16) = 5.12
+
+	refreshrate(21,1) = 0.27
+	refreshrate(21,2) = 0.53
+	refreshrate(21,3) = 0.80
+	refreshrate(21,4) = 1.07
+	refreshrate(21,5) = 1.33
+	refreshrate(21,6) = 1.60
+	refreshrate(21,7) = 1.87
+	refreshrate(21,8) = 2.13
+	refreshrate(21,9) = 2.40
+	refreshrate(21,10) = 2.67
+	refreshrate(21,11) = 2.93
+	refreshrate(21,12) = 3.20
+	refreshrate(21,13) = 3.47
+	refreshrate(21,14) = 3.73
+	refreshrate(21,15) = 4.00
+	refreshrate(21,16) = 4.27
+
+	refreshrate(22,1) = 0.21
+	refreshrate(22,2) = 0.43
+	refreshrate(22,3) = 0.64
+	refreshrate(22,4) = 0.85
+	refreshrate(22,5) = 1.07
+	refreshrate(22,6) = 1.28
+	refreshrate(22,7) = 1.49
+	refreshrate(22,8) = 1.71
+	refreshrate(22,9) = 1.92
+	refreshrate(22,10) = 2.13
+	refreshrate(22,11) = 2.35
+	refreshrate(22,12) = 2.56
+	refreshrate(22,13) = 2.77
+	refreshrate(22,14) = 2.99
+	refreshrate(22,15) = 3.20
+	refreshrate(22,16) = 3.41
+
+	refreshrate(23,1) = 0.20
+	refreshrate(23,2) = 0.40
+	refreshrate(23,3) = 0.60
+	refreshrate(23,4) = 0.80
+	refreshrate(23,5) = 1.00
+	refreshrate(23,6) = 1.20
+	refreshrate(23,7) = 1.40
+	refreshrate(23,8) = 1.60
+	refreshrate(23,9) = 1.80
+	refreshrate(23,10) = 2.00
+	refreshrate(23,11) = 2.20
+	refreshrate(23,12) = 2.40
+	refreshrate(23,13) = 2.60
+	refreshrate(23,14) = 2.80
+	refreshrate(23,15) = 3.00
+	refreshrate(23,16) = 3.20
+
+	refreshrate(24,1) = 0.19
+	refreshrate(24,2) = 0.37
+	refreshrate(24,3) = 0.56
+	refreshrate(24,4) = 0.75
+	refreshrate(24,5) = 0.93
+	refreshrate(24,6) = 1.12
+	refreshrate(24,7) = 1.31
+	refreshrate(24,8) = 1.49
+	refreshrate(24,9) = 1.68
+	refreshrate(24,10) = 1.87
+	refreshrate(24,11) = 2.05
+	refreshrate(24,12) = 2.24
+	refreshrate(24,13) = 2.43
+	refreshrate(24,14) = 2.61
+	refreshrate(24,15) = 2.80
+	refreshrate(24,16) = 2.99
+
+	refreshrate(25,1) = 0.16
+	refreshrate(25,2) = 0.32
+	refreshrate(25,3) = 0.48
+	refreshrate(25,4) = 0.64
+	refreshrate(25,5) = 0.80
+	refreshrate(25,6) = 0.96
+	refreshrate(25,7) = 1.12
+	refreshrate(25,8) = 1.28
+	refreshrate(25,9) = 1.44
+	refreshrate(25,10) = 1.60
+	refreshrate(25,11) = 1.76
+	refreshrate(25,12) = 1.92
+	refreshrate(25,13) = 2.08
+	refreshrate(25,14) = 2.24
+	refreshrate(25,15) = 2.40
+	refreshrate(25,16) = 2.56
+
+	refreshrate(26,1) = 0.13
+	refreshrate(26,2) = 0.27
+	refreshrate(26,3) = 0.40
+	refreshrate(26,4) = 0.53
+	refreshrate(26,5) = 0.67
+	refreshrate(26,6) = 0.80
+	refreshrate(26,7) = 0.93
+	refreshrate(26,8) = 1.07
+	refreshrate(26,9) = 1.20
+	refreshrate(26,10) = 1.33
+	refreshrate(26,11) = 1.47
+	refreshrate(26,12) = 1.60
+	refreshrate(26,13) = 1.73
+	refreshrate(26,14) = 1.87
+	refreshrate(26,15) = 2.00
+	refreshrate(26,16) = 2.13
+
+	refreshrate(27,1) = 0.12
+	refreshrate(27,2) = 0.24
+	refreshrate(27,3) = 0.36
+	refreshrate(27,4) = 0.48
+	refreshrate(27,5) = 0.53
+	refreshrate(27,6) = 0.64
+	refreshrate(27,7) = 0.75
+	refreshrate(27,8) = 0.85
+	refreshrate(27,9) = 0.96
+	refreshrate(27,10) = 1.07
+	refreshrate(27,11) = 1.17
+	refreshrate(27,12) = 1.28
+	refreshrate(27,13) = 1.39
+	refreshrate(27,14) = 1.49
+	refreshrate(27,15) = 1.60
+	refreshrate(27,16) = 1.71
+
+	refreshrate(28,1) = 0.12
+	refreshrate(28,2) = 0.24
+	refreshrate(28,3) = 0.36
+	refreshrate(28,4) = 0.48
+	refreshrate(28,5) = 0.50
+	refreshrate(28,6) = 0.60
+	refreshrate(28,7) = 0.70
+	refreshrate(28,8) = 0.80
+	refreshrate(28,9) = 0.90
+	refreshrate(28,10) = 1.00
+	refreshrate(28,11) = 1.10
+	refreshrate(28,12) = 1.20
+	refreshrate(28,13) = 1.30
+	refreshrate(28,14) = 1.40
+	refreshrate(28,15) = 1.50
+	refreshrate(28,16) = 1.60
+
+	refreshrate(29,1) = 0.12
+	refreshrate(29,2) = 0.24
+	refreshrate(29,3) = 0.36
+	refreshrate(29,4) = 0.48
+	refreshrate(29,5) = 0.48
+	refreshrate(29,6) = 0.56
+	refreshrate(29,7) = 0.65
+	refreshrate(29,8) = 0.75
+	refreshrate(29,9) = 0.84
+	refreshrate(29,10) = 0.93
+	refreshrate(29,11) = 1.03
+	refreshrate(29,12) = 1.12
+	refreshrate(29,13) = 1.21
+	refreshrate(29,14) = 1.31
+	refreshrate(29,15) = 1.40
+	refreshrate(29,16) = 1.49
+
+	refreshrate(30,1) = 0.12
+	refreshrate(30,2) = 0.24
+	refreshrate(30,3) = 0.36
+	refreshrate(30,4) = 0.48
+	refreshrate(30,5) = 0.48
+	refreshrate(30,6) = 0.48
+	refreshrate(30,7) = 0.56
+	refreshrate(30,8) = 0.64
+	refreshrate(30,9) = 0.72
+	refreshrate(30,10) = 0.80
+	refreshrate(30,11) = 0.88
+	refreshrate(30,12) = 0.96
+	refreshrate(30,13) = 1.04
+	refreshrate(30,14) = 1.12
+	refreshrate(30,15) = 1.20
+	refreshrate(30,16) = 1.28
+
+	refreshrate(31,1) = 0.12
+	refreshrate(31,2) = 0.24
+	refreshrate(31,3) = 0.36
+	refreshrate(31,4) = 0.48
+	refreshrate(31,5) = 0.48
+	refreshrate(31,6) = 0.48
+	refreshrate(31,7) = 0.48
+	refreshrate(31,8) = 0.53
+	refreshrate(31,9) = 0.60
+	refreshrate(31,10) = 0.67
+	refreshrate(31,11) = 0.73
+	refreshrate(31,12) = 0.80
+	refreshrate(31,13) = 0.87
+	refreshrate(31,14) = 0.93
+	refreshrate(31,15) = 1.00
+	refreshrate(31,16) = 1.07
+
+	refreshrate(32,1) = 0.12
+	refreshrate(32,2) = 0.24
+	refreshrate(32,3) = 0.36
+	refreshrate(32,4) = 0.48
+	refreshrate(32,5) = 0.48
+	refreshrate(32,6) = 0.48
+	refreshrate(32,7) = 0.48
+	refreshrate(32,8) = 0.48
+	refreshrate(32,9) = 0.48
+	refreshrate(32,10) = 0.53
+	refreshrate(32,11) = 0.59
+	refreshrate(32,12) = 0.64
+	refreshrate(32,13) = 0.69
+	refreshrate(32,14) = 0.75
+	refreshrate(32,15) = 0.80
+	refreshrate(32,16) = 0.85
+
+	refreshrate(33,1) = 0.12
+	refreshrate(33,2) = 0.24
+	refreshrate(33,3) = 0.36
+	refreshrate(33,4) = 0.48
+	refreshrate(33,5) = 0.48
+	refreshrate(33,6) = 0.48
+	refreshrate(33,7) = 0.48
+	refreshrate(33,8) = 0.48
+	refreshrate(33,9) = 0.48
+	refreshrate(33,10) = 0.50
+	refreshrate(33,11) = 0.55
+	refreshrate(33,12) = 0.60
+	refreshrate(33,13) = 0.65
+	refreshrate(33,14) = 0.70
+	refreshrate(33,15) = 0.75
+	refreshrate(33,16) = 0.80
+
+	refreshrate(34,1) = 0.12
+	refreshrate(34,2) = 0.24
+	refreshrate(34,3) = 0.36
+	refreshrate(34,4) = 0.48
+	refreshrate(34,5) = 0.48
+	refreshrate(34,6) = 0.48
+	refreshrate(34,7) = 0.48
+	refreshrate(34,8) = 0.48
+	refreshrate(34,9) = 0.48
+	refreshrate(34,10) = 0.48
+	refreshrate(34,11) = 0.51
+	refreshrate(34,12) = 0.56
+	refreshrate(34,13) = 0.61
+	refreshrate(34,14) = 0.65
+	refreshrate(34,15) = 0.70
+	refreshrate(34,16) = 0.75
+
+	refreshrate(35,1) = 0.12
+	refreshrate(35,2) = 0.24
+	refreshrate(35,3) = 0.36
+	refreshrate(35,4) = 0.48
+	refreshrate(35,5) = 0.48
+	refreshrate(35,6) = 0.48
+	refreshrate(35,7) = 0.48
+	refreshrate(35,8) = 0.48
+	refreshrate(35,9) = 0.48
+	refreshrate(35,10) = 0.48
+	refreshrate(35,11) = 0.48
+	refreshrate(35,12) = 0.48
+	refreshrate(35,13) = 0.52
+	refreshrate(35,14) = 0.56
+	refreshrate(35,15) = 0.60
+	refreshrate(35,16) = 0.64
+
+	refreshrate(36,1) = 0.12
+	refreshrate(36,2) = 0.24
+	refreshrate(36,3) = 0.36
+	refreshrate(36,4) = 0.48
+	refreshrate(36,5) = 0.48
+	refreshrate(36,6) = 0.48
+	refreshrate(36,7) = 0.48
+	refreshrate(36,8) = 0.48
+	refreshrate(36,9) = 0.48
+	refreshrate(36,10) = 0.48
+	refreshrate(36,11) = 0.48
+	refreshrate(36,12) = 0.48
+	refreshrate(36,13) = 0.48
+	refreshrate(36,14) = 0.48
+	refreshrate(36,15) = 0.50
+	refreshrate(36,16) = 0.53
+
+	refreshrate(37,1) = 0.12
+	refreshrate(37,2) = 0.24
+	refreshrate(37,3) = 0.36
+	refreshrate(37,4) = 0.48
+	refreshrate(37,5) = 0.48
+	refreshrate(37,6) = 0.48
+	refreshrate(37,7) = 0.48
+	refreshrate(37,8) = 0.48
+	refreshrate(37,9) = 0.48
+	refreshrate(37,10) = 0.48
+	refreshrate(37,11) = 0.48
+	refreshrate(37,12) = 0.48
+	refreshrate(37,13) = 0.48
+	refreshrate(37,14) = 0.48
+	refreshrate(37,15) = 0.48
+	refreshrate(37,16) = 0.48
+	
+	refreshrate(38,1) = 0.12
+	refreshrate(38,2) = 0.24
+	refreshrate(38,3) = 0.36
+	refreshrate(38,4) = 0.48
+	refreshrate(38,5) = 0.48
+	refreshrate(38,6) = 0.48
+	refreshrate(38,7) = 0.48
+	refreshrate(38,8) = 0.48
+	refreshrate(38,9) = 0.48
+	refreshrate(38,10) = 0.48
+	refreshrate(38,11) = 0.48
+	refreshrate(38,12) = 0.48
+	refreshrate(38,13) = 0.48
+	refreshrate(38,14) = 0.48
+	refreshrate(38,15) = 0.48
+	refreshrate(38,16) = 0.48
+	
+	refreshrate(39,1) = 0.12
+	refreshrate(39,2) = 0.24
+	refreshrate(39,3) = 0.36
+	refreshrate(39,4) = 0.48
+	refreshrate(39,5) = 0.48
+	refreshrate(39,6) = 0.48
+	refreshrate(39,7) = 0.48
+	refreshrate(39,8) = 0.48
+	refreshrate(39,9) = 0.48
+	refreshrate(39,10) = 0.48
+	refreshrate(39,11) = 0.48
+	refreshrate(39,12) = 0.48
+	refreshrate(39,13) = 0.48
+	refreshrate(39,14) = 0.48
+	refreshrate(39,15) = 0.48
+	refreshrate(39,16) = 0.48
+	
+	refreshrate(40,1) = 0.12
+	refreshrate(40,2) = 0.24
+	refreshrate(40,3) = 0.36
+	refreshrate(40,4) = 0.48
+	refreshrate(40,5) = 0.48
+	refreshrate(40,6) = 0.48
+	refreshrate(40,7) = 0.48
+	refreshrate(40,8) = 0.48
+	refreshrate(40,9) = 0.48
+	refreshrate(40,10) = 0.48
+	refreshrate(40,11) = 0.48
+	refreshrate(40,12) = 0.48
+	refreshrate(40,13) = 0.48
+	refreshrate(40,14) = 0.48
+	refreshrate(40,15) = 0.48
+	refreshrate(40,16) = 0.48
+	
+	refreshrate(41,1) = 0.12
+	refreshrate(41,2) = 0.24
+	refreshrate(41,3) = 0.36
+	refreshrate(41,4) = 0.48
+	refreshrate(41,5) = 0.48
+	refreshrate(41,6) = 0.48
+	refreshrate(41,7) = 0.48
+	refreshrate(41,8) = 0.48
+	refreshrate(41,9) = 0.48
+	refreshrate(41,10) = 0.48
+	refreshrate(41,11) = 0.48
+	refreshrate(41,12) = 0.48
+	refreshrate(41,13) = 0.48
+	refreshrate(41,14) = 0.48
+	refreshrate(41,15) = 0.48
+	refreshrate(41,16) = 0.48
+	
+	refreshrate(42,1) = 0.12
+	refreshrate(42,2) = 0.24
+	refreshrate(42,3) = 0.36
+	refreshrate(42,4) = 0.48
+	refreshrate(42,5) = 0.48
+	refreshrate(42,6) = 0.48
+	refreshrate(42,7) = 0.48
+	refreshrate(42,8) = 0.48
+	refreshrate(42,9) = 0.48
+	refreshrate(42,10) = 0.48
+	refreshrate(42,11) = 0.48
+	refreshrate(42,12) = 0.48
+	refreshrate(42,13) = 0.48
+	refreshrate(42,14) = 0.48
+	refreshrate(42,15) = 0.48
+	refreshrate(42,16) = 0.48
+
+Endp

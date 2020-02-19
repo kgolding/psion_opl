@@ -1,0 +1,499 @@
+
+
+
+
+
+
+
+
+
+
+PROC TEST:
+GLOBAL Gcode$(maxitems, 10), Gitem$(maxitems, 40), Gqty&(maxitems), Gmin&(maxitems), Gmax&(maxitems)
+GLOBAL Ghours(maxitems), Gcost(maxitems), Gcable&(maxitems), Gcablecode$(maxitems, 10), Gma&(maxitems)
+GLOBAL Gzones(maxitems), Gspecial$(maxitems, 10)
+
+GLOBAL GPcode$(maxpanels, 10), GPitem$(maxpanels, 40), GPhours(maxpanels)
+GLOBAL GPcost(maxpanels), GPma&(maxpanels), GPmaxzones&(maxpanels), GPonboardzones&(maxpanels)
+GLOBAL GPselected%
+
+GLOBAL GTroundedhours, GThours, GTcost, GTzones&, GTma&
+GLOBAL GTusedzones&
+GLOBAL labourrate
+
+labourrate = 24.00
+
+LoadDummyData:
+
+DO
+GetDetection:
+
+CLS
+UpdateTotals:
+DRC:
+DrawList:
+
+
+
+UNTIL Get = 27
+ENDP
+
+PROC CreateTemplate:
+LOCAL f$(255)
+
+f$ = Pathed$:(CMD$(1), "template.dat")
+TRAP DELETE f$
+CREATE """" + f$ + """ FIELDS index,qty,code(10),h,cost,i(80),min,max,cable,ccode(10),ma,zones,spec(20) TO Items", A, index%, qty&, code$, hours, cost, item$, min%, max%, cable%, cablecode$, ma%, zones, special$
+CLOSE
+CREATE """" + f$ + """ FIELDS index,code(10),h,cost,i(80),ma,maxzones,onboardzones TO Panels", B, index%, cost, hours, item$, ma&, maxzones&, onboardzones&
+CLOSE
+
+
+ENDP
+
+PROC BlankAll:
+LOCAL i%
+
+i% = 1
+WHILE i% <= maxitems
+Gqty&(i%) = 0
+Gcode$(i%) = ""
+Ghours(i%) = 0
+Gcost(i%) = 0
+Gitem$(i%) = ""
+Gmin&(i%) = 0
+Gmax&(i%) = 0
+Gcable&(i%) = 0
+Gcablecode$(i%) = ""
+Gma&(i%) = 0
+Gzones(i%) = 0
+Gspecial$(i%) = ""
+i%=i%+1
+ENDWH
+ENDP
+
+PROC DrawList:
+LOCAL i%, cw%(8), step%, line%
+
+step% = 15
+
+
+cw%(1) = gTWIDTH("999")
+cw%(2) = gTWIDTH("XXX99999")
+cw%(3) = gTWIDTH(REPT$("X", 30))
+cw%(4) = gTWIDTH("£9999.99")
+cw%(5) = gTWIDTH("9999.99hrs")
+
+
+i% = 1
+line% = 0
+WHILE i% <= maxitems
+IF Gqty&(i%) > 0
+line%=line%+1
+ENDIF
+i%=i%+1
+ENDWH
+
+gCREATE(5, 5, cw%(1) + cw%(2) + cw%(3) + cw%(4) + cw%(5) + 30, step% * line%, 1)
+
+i% = 1
+line% = 1
+WHILE i% <= maxitems
+IF Gqty&(i%) > 0
+gAT 5, (line% * step%)
+gPRINTB GEN$(Gqty&(i%), 3), cw%(1), 1
+gMOVE cw%(1) + 5, 0
+gPRINTB Gcode$(i%), cw%(2), 2
+gMOVE cw%(2) + 5, 0
+gPRINTB Gitem$(i%), cw%(3), 2
+gMOVE cw%(3) + 5, 0
+gPRINTB "£" + FIX$(Gcost(i%), 2, 6), cw%(4), 1
+gMOVE cw%(4) + 5, 0
+gPRINTB FIX$(Ghours(i%), 2, 6) + "hrs", cw%(5), 1
+gMOVE cw%(5) + 5, 0
+
+line%=line%+1
+ENDIF
+i%=i%+1
+ENDWH
+
+GET
+gCLOSE(gIDENTITY)
+
+ENDP
+
+PROC GetDetection:
+LOCAL i%, ret%
+
+i% = 1
+dINIT "Detection Devices", 1 + 4
+WHILE i% < 9
+IF Gitem$(i%) <> ""
+dLONG Gqty&(i%), "How many " + Gitem$(i%), Gmin&(i%), Gmax&(i%)
+ENDIF
+i%=i%+1
+ENDWH
+dBUTTONS "Controls", dialogswitchkey, "Cancel", -27, "OK", 13
+ret% = DIALOG
+IF ret% = dialogswitchkey
+GetControls:
+ENDIF
+ENDP
+
+PROC GetControls:
+LOCAL i%, ret%, temp$(255), signalling%
+
+
+i% = 9
+dINIT "Control equipment", 1 + 4
+WHILE i% < 16
+IF Gitem$(i%) <> ""
+dLONG Gqty&(i%), "How many " + Gitem$(i%), Gmin&(i%), Gmax&(i%)
+ENDIF
+i%=i%+1
+ENDWH
+
+
+i% = 16
+temp$ = ""
+WHILE i% < 21
+IF Gitem$(i%) <> ""
+IF temp$ = ""
+temp$ = Gitem$(i%)
+ELSE
+temp$ = temp$ + "," + Gitem$(i%)
+ENDIF
+IF Gqty&(i%) > 0
+signalling% = i% - 15
+ENDIF
+ENDIF
+i%=i%+1
+ENDWH
+
+If temp$ <> ""
+dCHOICE signalling%, "Remote Signalling Method", temp$
+ENDIF
+
+dBUTTONS "Detection", dialogswitchkey, "Cancel", -27, "OK", 13
+ret% = DIALOG
+IF (ret% = 13) OR (ret% = dialogswitchkey)
+i% = 16
+WHILE i% < 21
+Gqty&(i%) = 0
+i%=i%+1
+ENDWH
+Gqty&(15 + signalling%) = 1
+ENDIF
+IF ret% = dialogswitchkey
+GetDetection:
+ENDIF
+ENDP
+
+PROC DRC:
+local i%, l&, warnings%
+
+
+i% = 9
+l& = 0
+WHILE i% <= 16
+IF (Gqty&(i%) > 0) AND (LOC("SAB.SAS.", LEFT$(Gcode$(i%), 3) + ".") > 0)
+l& = -1
+ENDIF
+i%=i%+1
+ENDWH
+IF NOT(l&)
+warnings%=warnings%+1
+dINIT "WARNING - There are no self activating sounders selected!"
+dTEXT "", "Are you sure your selling an alarm system with"
+dTEXT "", "no self activating sounder!"
+dTEXT "", "", $800
+dTEXT "", "There are NACOSS and ABI guidelines that require"
+dTEXT "", "at least one self activating sounder."
+dTEXT "", "You can add a sounder from the Control Equipment screen."
+dBUTTONS "Control Equip.", %c, "OK", 13
+IF DIALOG = %c
+CmdC%:
+RETURN
+ENDIF
+ENDIF
+
+
+i% = 1
+l& = 0
+WHILE i% <= 8
+l& = l& + Gqty&(i%)
+i%=i%+1
+ENDWH
+IF l& = 0
+warnings%=warnings%+1
+dINIT "WARNING - There are no detection devices selected!"
+dTEXT "", "Are you sure your selling an alarm system with"
+dTEXT "", "no detection devices?"
+dTEXT "", "", $800
+dTEXT "", "You can add devices from the Detection Devices screen."
+dBUTTONS "Detection Devices", %d, "OK", 13
+IF DIALOG = %d
+CmdD%:
+RETURN
+ENDIF
+ENDIF
+
+
+IF GPmaxzones&(GPselected%) - GTusedzones& = 0
+warnings%=warnings%+1
+dINIT "WARNING - There are no spare zones!"
+dTEXT "", "It is good engineering practice to allow 10% spare zones"
+dTEXT "", "", $800
+dTEXT "", "You can have spare zones automatically added to ensure"
+dTEXT "", "that future expansion is possible from the Preferences screen."
+dBUTTONS "Preferences", %k, "OK", 13
+IF DIALOG = %k
+CmdK%:
+RETURN
+ENDIF
+ELSEIF GPmaxzones&(GPselected%) - GTusedzones& < GPmaxzones&(GPselected%) / 10
+warnings%=warnings%+1
+dINIT "WARNING - There is only " + GEN$(GPmaxzones&(GPselected%) - GTusedzones&, 5) + " spare zones", 1
+dTEXT "", "It is good engineering practice to allow 10% spare zones"
+dTEXT "", "", $800
+dTEXT "", "You can have spare zones automatically added to ensure"
+dTEXT "", "that future expansion is possible from the Preferences screen."
+dBUTTONS "Preferences", %k, "OK", 13
+IF DIALOG = %k
+CmdK%:
+RETURN
+ENDIF
+ENDIF
+ENDP
+
+PROC UpdateTotals:
+LOCAL i%, flagged%, t%, panelok%(maxpanels), temp
+
+
+i% = 21
+WHILE i% <= 29
+Gqty&(i%) = 0
+i%=i%+1
+ENDWH
+
+
+CalcTots:
+
+
+i% = 1
+flagged% = -1
+WHILE i% <= maxpanels
+IF (GPcode$(i%) <> "") AND (GPmaxzones&(i%) >= GTusedzones& + Gsparezones&)
+panelok%(i%) = -1
+flagged% = 0
+
+ENDIF
+i%=i%+1
+ENDWH
+
+IF flagged%
+RETURN
+ENDIF
+
+i% = 1
+t% = 0
+WHILE i% <= maxpanels
+IF panelok%(i%)
+IF t% = 0
+t% = i%
+ELSEIF GPcost(i%) < GPcost(t%)
+t% = i%
+ENDIF
+ENDIF
+i%=i%+1
+ENDWH
+
+SetItem:(21, GPcode$(t%), GPhours(t%), GPcost(t%), GPitem$(t%), 1, 1, 0, "", As%:(GPma&(t%)), FLT(GPonboardzones&(t%)), "")
+GPselected% = t%
+
+
+CalcTots:
+
+
+IF GTzones& < 0
+Gqty&(22) = Rounded:(-FLT(GTzones&) / Gzones(22))
+ENDIF
+
+
+CalcTots:
+
+
+IF GTma& < 0
+PRINT "Adding PSU"
+Gqty&(23) = Rounded:(-FLT(GTma&) / Gma&(23))
+ENDIF
+
+
+i% = 30
+WHILE i% <= 39
+Gqty&(i%) = 0
+i%=i%+1
+ENDWH
+
+i% = 1
+WHILE i% <= 29
+IF (Gqty&(i%) > 0) AND (Gcable&(i%) > 0)
+
+t% = 30
+flagged% = -1
+WHILE t% <= 39
+IF Gcablecode$(i%) = Gcode$(t%)
+Gqty&(t%) = (Gcable&(i%) * Gqty&(i%)) + Gqty&(t%)
+flagged% = 0
+BREAK
+ENDIF
+t%=t%+1
+ENDWH
+IF flagged%
+
+t% = 30
+WHILE t% <= 39
+IF Gcode$(t%) = ""
+Gcode$(t%) = Gcablecode$(i%)
+Gqty&(t%) = (Gcable&(i%) * Gqty&(i%))
+BREAK
+ENDIF
+t%=t%+1
+ENDWH
+ENDIF
+ENDIF
+i%=i%+1
+ENDWH
+
+CalcTots:
+
+ENDP
+
+PROC CalcTots:
+LOCAL i%, p%, q%
+
+
+GThours = 0
+GTcost = 0
+GTzones& = 0
+GTma& = 0
+GTusedzones& = 0
+
+
+i% = 1
+WHILE i% <= maxitems
+IF Gqty&(i%) > 0
+GThours = (Ghours(i%) * Gqty&(i%)) + GThours
+GTcost = (Gcost(i%) * Gqty&(i%)) + GTcost
+GTzones& = Rounded:(Gzones(i%) * Gqty&(i%)) + GTzones&
+GTma& = (Gma&(i%) * Gqty&(i%)) + GTma&
+IF Gzones(i%) < 0
+GTusedzones& = IABS(Rounded:(Gzones(i%) * Gqty&(i%))) + GTusedzones&
+ENDIF
+ENDIF
+i%=i%+1
+ENDWH
+
+
+GTroundedhours = INT((GThours / 4) + .99) * 4
+
+ENDP
+
+PROC PrintSelected:
+LOCAL i%, totalzones&
+
+PRINT
+PRINT "SELECTED ITEMS:"
+i% = 1
+WHILE i% <= maxitems
+IF Gqty&(i%) > 0
+PRINT Gqty&(i%), Gcode$(i%), Gitem$(i%)
+totalzones& = Rounded:(Gzones(i%) * Gqty&(i%)) + totalzones&
+ENDIF
+i%=i%+1
+ENDWH
+
+ENDP
+
+PROC Rounded:(float)
+IF float > 0
+RETURN INT(float + 0.99)
+ELSE
+RETURN INT(float - 0.99)
+ENDIF
+ENDP
+
+PROC LoadDummyData:
+SetItem:(1, "CON001", 0.5, 0.80, "Contacts (surface/flush)", 0, 20, 15, "CAB004", 0, -0.2, "")
+SetItem:(2, "PIR001", 1, 8.12, "PIR's", 0, 20, 15, "CAB004", -22, -1, "")
+SetItem:(3, "DTA001", 1, 14.45, "Duel-tecs", 0, 20, 15, "CAB004", -35, -1, "")
+SetItem:(4, "PAB001", 0.5, 5.01, "Attack Buttons", 0, 20, 15, "CAB004", 0, -0.2, "")
+SetItem:(5, "SMOKE1", 1, 22.50, "Smoke Detectors", 0, 10, 15, "CAB004", -40, -1, "")
+SetItem:(8, "", 0, 0, "Extra zones (e.g existing devices)", 0, 20, 0, "", 0, -1, "")
+
+SetItem:(9, "RKP001", 1, 47.35, "Additional Remote Keypads", 0, 3, 15, "CAB017", -90, 0, "")
+SetItem:(10, "SAS001", 1, 45, "Self-Activating Sounders", 0, 4, 25, "CAB004", -120, 0, "")
+Gqty&(10) = 1
+
+SetItem:(11, "INT001", 0.5, 6.70, "Additional Internal Sounders", 0, 3, 15, "CAB004", 0, 0, "")
+
+SetItem:(16, "", 0, 0, "None - Bells Only", 0, 0, 0, "", 0, 0, "")
+SetItem:(17, "", 1, 0, "Digital dialler", 0, 0, 0, "", -100, 0, "KH")
+SetItem:(18, "REDCARE", 2, 113.50, "Redcare", 0, 0,0, "", -150, 0, "KH,BT")
+
+SetItem:(21, "GAL8+", 3.5, 63.85, "Galaxy 8+", 1, 1, 0, "", 900, 8, "")
+SetItem:(22, "RIO001", 0.5, 47.50, "Boxed RIO", 0, 1, 15, "CAB017", 50, 8, "")
+SetItem:(23, "PSU001", 1, 23.50, "1A PSU", 0, 99, 0, "", 1000, 0, "")
+
+SetControlPanel:(1, "GAL8+", 3.0, 63.50, "Galaxy 8+", 8, 8, 900)
+SetControlPanel:(2, "GAL16", 4.0, 108.90, "Galaxy 16", 8, 16, 900)
+SetControlPanel:(3, "GAL60", 4.0, 170.00, "Galaxy 60 c/w smart psu", 20, 60, 1800)
+SetControlPanel:(4, "GAL500", 6.0, 350.90, "Galaxy 500 c/w smart psu", 8, 502, 1800)
+
+ENDP
+
+PROC SetControlPanel:(index%, code$, hours, cost, item$, onboardzones%, maxzones%, ma%)
+GPcode$(index%) = code$
+GPitem$(index%) = item$
+GPhours(index%) = hours
+GPcost(index%) = cost
+GPmaxzones&(index%) = maxzones%
+GPonboardzones&(index%) = onboardzones%
+GPma&(index%) = ma%
+ENDP
+
+PROC SetItem:(index%, code$, hours, cost, item$, min%, max%, cable%, cablecode$, ma%, zones, special$)
+Gcode$(index%) = code$
+Ghours(index%) = hours
+Gcost(index%) = cost
+Gitem$(index%) = item$
+Gmin&(index%) = min%
+Gmax&(index%) = max%
+Gcable&(index%) = cable%
+Gcablecode$(index%) = cablecode$
+Gma&(index%) = ma%
+Gzones(index%) = zones
+Gqty&(index%) = min%
+Gspecial$(index%) = special$
+ENDP
+
+PROC As%:(l&)
+RETURN l&
+ENDP
+
+PROC Pathed$:(path$, filename$)
+LOCAL off%(6), n$(255), f%
+
+IF LOC(filename$, ".") = 0
+n$ = filename$ + ".X"
+f% = -1
+ELSE
+n$ = filename$
+ENDIF
+n$ = PARSE$(n$, path$, off%(1))
+IF f%
+RETURN LEFT$(n$, LEN(n$) - 2)
+ELSE
+RETURN n$
+ENDIF
+ENDP

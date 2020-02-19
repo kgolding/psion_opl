@@ -1,0 +1,113 @@
+PROC Main:
+	LOCAL f$(255)
+	
+	f$ = "C:\System\Apps\QQuote\template.dat"
+	
+	dINIT "Create New Template"
+	dFILE f$, "File", 1 + 16
+	IF DIALOG
+		TRAP DELETE f$
+		CreatePanels:(f$)
+		CreateItems:(f$)
+		SetUIDs:(f$, &10000050, &10000075, &100041B7, &6BF5093E)
+		COMPACT f$
+		BUSY "Done, press a key"
+		GET
+	ENDIF
+ENDP
+
+PROC CreateItems:(f$)
+
+	CREATE """" + f$ + """ FIELDS index,qty,code(10),h,cost,i(80),min,max,cable,ccode(10),ma,zones,spec(20) TO Items", A, index%, qty&, code$, hours, cost, item$, min%, max%, cable%, cablecode$, ma%, zones, special$
+	
+	AddItem:(1, 0, "CON001", 0.5, 0.80, "Flush Contacts", 0, 20, 15, "CAB004", 0, -0.2, "")
+	AddItem:(2, 0, "CON002", 0.5, 0.60, "Surface Contacts", 0, 20, 15, "CAB004", 0, -0.2, "")
+	AddItem:(3, 0, "PIR001", 1, 8.12, "PIR's", 0, 20, 15, "CAB004", -22, -1, "")
+	AddItem:(4, 0, "DTA001", 1, 14.45, "Duel-tecs", 0, 20, 15, "CAB004", -35, -1, "") 
+	AddItem:(5, 0, "PAB001", 0.5, 5.01, "Attack Buttons", 0, 20, 15, "CAB004", 0, -0.2, "")
+	AddItem:(6, 0, "SMOKE1", 1, 22.50, "Smoke Detectors", 0, 10, 15, "CAB004", -40, -1, "")
+	AddItem:(8, 0, "", 0, 0, "Extra zones (e.g existing devices)", 0, 20, 0, "", 0, -1, "")
+
+	AddItem:(9, 0, "RKP001", 1, 47.35, "Additional Remote Keypads", 0, 3, 15, "CAB017", -90, 0, "")
+	AddItem:(10, 1, "SAS001", 1, 45, "Self-Activating Sounders", 0, 4, 25, "CAB004", -120, 0, "")	
+	AddItem:(11, 0, "INT001", 0.5, 6.70, "Additional Internal Sounders", 0, 3, 15, "CAB004", 0, 0, "")
+	
+	AddItem:(16, 0, "", 0, 0, "None - Bells Only", 0, 0, 0, "", 0, 0, "")
+	AddItem:(17, 0, "", 1, 0, "Digital dialler", 0, 0, 0, "", -100, 0, "KH")
+	AddItem:(18, 0, "REDCARE", 2, 113.50, "Redcare", 0, 0,0, "", -150, 0, "KH,BT")
+	
+	AddItem:(22, 0, "RIO001", 0.5, 47.50, "Boxed RIO", 0, 1, 15, "CAB017", 50, 8, "")
+	AddItem:(23, 0, "PSU001", 1, 23.50, "1A PSU", 0, 99, 0, "", 1000, 0, "")
+	
+	AddItem:(30, 0, "CAB004", 0.05, 0.07, "8 core alarm cable", 0, 9999, 0, "", 0, 0, "")
+	AddItem:(31, 0, "CAB017", 0.05, 0.07, "Twin twisted pair cable", 0, 9999, 0, "", 0, 0, "")
+	CLOSE
+
+	REM index%, qty%, code$, hours, cost, item$, min%, max%, cable%, cablecode$, ma%, zones, special$	
+
+ENDP
+
+PROC CreatePanels:(f$)
+	
+	CREATE """" + f$ + """ FIELDS index,code(10),h,cost,i(80),oba,z,ma,cable,ccode(10) TO Panels", A, index%, code$, hours, cost, item$, onboardzones%, maxzones%, ma%, cable%, cablecode$
+
+	AddControlPanel:(1, "GAL8+", 3.0, 63.50, "Galaxy 8+ control panel", 8, 8, 900, 15, "CAB017")
+	AddControlPanel:(2, "GAL16", 4.0, 108.90, "Galaxy 16 control panel", 8, 16, 900, 15, "CAB017")
+	AddControlPanel:(3, "GAL60", 4.0, 170.00, "Galaxy 60 control panel c/w smart psu", 20, 60, 1800, 15, "CAB017")
+	AddControlPanel:(4, "GAL500", 6.0, 350.90, "Galaxy 500 control panel c/w smart psu", 8, 502, 1800, 15, "CAB017")
+
+	CLOSE
+
+ENDP
+
+PROC AddControlPanel:(index%, code$, hours, cost, item$, onboardzones%, maxzones%, ma%, cable%, cablecode$)
+	INSERT
+	A.index% = index%
+	A.code$ = code$
+	A.hours = hours
+	A.cost = cost
+	A.item$ = item$
+	A.onboardzones% = onboardzones%
+	A.maxzones% = maxzones%
+	A.cable% = cable%
+	A.cablecode$ = cablecode$
+	A.ma% = ma%
+	PUT
+ENDP
+
+PROC AddItem:(index%, qty%, code$, hours, cost, item$, min%, max%, cable%, cablecode$, ma%, zones, special$)
+	INSERT
+	A.index% = index%
+	A.qty& = qty%
+	A.code$ = code$
+	A.hours = hours
+	A.cost = cost
+	A.item$ = item$
+	A.min% = min%
+	A.max% = max%
+	A.cable% = cable%
+	A.cablecode$ = cablecode$
+	A.ma% = ma%
+	A.zones = zones
+	A.special$ = special$
+	PUT
+ENDP
+
+PROC SetUIDs:(f$, uid1&, uid2&, uid3&, uid4&)
+	LOCAL h%, ret%, uid&(4)
+	
+	uid&(1) = uid1&
+	uid&(2) = uid2&
+	uid&(3) = uid3&
+	uid&(4) = uid4&
+	
+	ret% = IOOPEN(h%, f$, $100)
+	IF ret% :RAISE ret% :ENDIF
+	
+	IOWRITE(h%, ADDR(uid&()), 16)
+	IF ret% :RAISE ret% :ENDIF
+
+	IOCLOSE(h%)
+	IF ret% :RAISE ret% :ENDIF
+
+ENDP

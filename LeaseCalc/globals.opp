@@ -1,0 +1,3 @@
+Global lrTerm$(3, 30)
+Global lrRateAmountMin(6)
+Global lrRatePerThousand(3, 5)

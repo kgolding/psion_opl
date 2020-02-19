@@ -1,0 +1,33 @@
+PROC OPM_FileLoc$:(file$)
+	IF EXIST ("C:"+file$)
+		RETURN "C:"+file$
+	ELSE
+		IF EXIST ("D:"+file$)
+			RETURN "D:"+file$
+		ELSE
+			RETURN ""	REM File does not exist
+		ENDIF
+	ENDIF
+ENDP
+
+REM -------------------------------------
+REM Loads in a module held in /System/Opm
+REM -------------------------------------
+PROC OPM_LoadModule:(modulename$)
+	LOCAL f$(255)
+
+	f$=OPM_FileLoc$:("\System\Opm\"+modulename$+".opm")
+	IF f$<>""
+		TRAP LOADM f$ :REM Load the module
+	ELSE
+		ALERT("Cannot find the OPM file: \System\Opm\"+modulename$+".opm","You must install the OPM before this application will run")
+		STOP
+	ENDIF
+ENDP
+
+REM --------------------------------
+REM Unloads in a module from memory
+REM --------------------------------
+PROC OPM_UnloadModule:(modulename$)
+	TRAP UNLOADM OPM_FileLoc$:("\System\Opm\"+modulename$+".opm")
+ENDP

@@ -1,0 +1,112 @@
+Const KFontDescent% = 8
+
+PROC lrInit:
+lrTerm$(1) = "3 Years (1 + 11)"
+lrTerm$(2) = "5 Years (1 + 19)"
+lrTerm$(3) = "6 Years (1 + 23)"
+
+lrRateAmountMin(1) = 1000
+lrRateAmountMin(2) = 2000
+lrRateAmountMin(3) = 5000
+lrRateAmountMin(4) = 10000
+lrRateAmountMin(5) = 20000
+lrRateAmountMin(6) = 40000
+
+lrRatePerThousand(1, 1) = 105.67
+lrRatePerThousand(1, 2) = 100.05
+lrRatePerThousand(1, 3) = 98.91
+lrRatePerThousand(1, 4) = 98.34
+lrRatePerThousand(1, 5) = 97.76
+
+lrRatePerThousand(2, 1) = 73.12
+lrRatePerThousand(2, 2) = 67.26
+lrRatePerThousand(2, 3) = 66.09
+lrRatePerThousand(2, 4) = 65.50
+lrRatePerThousand(2, 5) = 64.91
+
+lrRatePerThousand(3, 1) = 64.72
+lrRatePerThousand(3, 2) = 58.72
+lrRatePerThousand(3, 3) = 57.53
+lrRatePerThousand(3, 4) = 56.93
+lrRatePerThousand(3, 5) = 56.33
+ENDP
+
+PROC lrTermChoice$:
+Return lrTerm$(1) + "," + lrTerm$(2) + "," + lrTerm$(3)
+ENDP
+
+PROC lrQtrPayment:(term%, amount, annualmaint)
+RETURN (annualmaint / 4) + (lrRatePerThousand:(term%, amount) * amount / 1000)
+ENDP
+
+PROC lrDrawRates:(x%, y%, w%, h%)
+Local rowHeight%, colWidth%
+Local term%, i%
+
+gFont 268435953
+rowHeight% = (h% - 2) / 7
+colWidth% = ((w% - 2) / 5) - 1
+
+gAt x%, y%
+gBox w%, h%
+
+gAt x% + 1, y% + rowHeight% - KFontDescent%
+gPrintb "Rates per £1000 financed, net of VAT", w% - 2, 3
+
+gMove colWidth% * 2, rowHeight%
+gPrintb "3 Years", colWidth%, 1
+
+gMove colWidth%, 0
+gPrintb "5 Years", colwidth%, 1
+
+gMove colWidth%, 0
+gPrintb "6 Years", colwidth%, 1
+
+gAt x% + 3, y% + (rowHeight% * 2) - KFontDescent%
+gPrintb "Invoice Value", (colWidth% * 2) - 4, 2
+
+gFont 268435956
+i% = 1
+gAt x% + 3, y% + (rowHeight% * 3) - KFontDescent%
+While i% < 6
+gPrintb "£" + Fix$(lrRateAmountMin(i%), 2, 8) + " to £" + Fix$(lrRateAmountMin(i% + 1) - 0.01, 2, 8), colWidth% * 2, 2
+gMove 0, rowHeight%
+i%=i%+1
+Endwh
+
+
+term% = 1
+While term% < 4
+i% = 1
+gAt x% + 1, y% + (rowHeight% * 3) - KFontDescent%
+gMove colWidth% * (1 + term%), 0
+While i% < 6
+gPrintb "£" + Fix$(lrRatePerThousand(term%, i%), 2, 6), colWidth%, 1
+gMove 0, rowHeight%
+i%=i%+1
+Endwh
+term%=term%+1
+Endwh
+ENDP
+
+PROC lrEditRates:
+
+ENDP
+
+PROC lrRatePerThousand:(term%, amount)
+Local i%
+
+If (term% < 0) or (term% > 3)
+Raise -1
+Endif
+
+i% = 5
+Do
+i%=i%-1
+If i% = 0
+Raise -1
+Endif
+Until amount >= lrRateAmountMin(i%)
+
+Return lrRatePerThousand(term%, i%)
+ENDP

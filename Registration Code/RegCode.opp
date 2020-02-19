@@ -1,0 +1,52 @@
+INCLUDE "System.oxh"
+
+PROC Main:
+	LOCAL username$(30), code&, key&
+	LOCAL program%, programkey&(10), programname$(20, 10)
+	
+	programkey&(1) = 492203
+	programname$(1) = "psiMind"
+		
+	program% = 1
+	DO
+		code& = CreateRegCode&:(username$, programkey&(program%))
+		
+		dINIT "Create code"
+		dEDIT username$, "Username", 30
+		dCHOICE program%, "Program", programname$(1)
+		IF code& <> 0
+			dTEXT "", "", $800
+			dTEXT "", username$ + " = " +GEN$(code&, 20), 2
+			CopyToClipboard:("Username: '" + username$ + "' - Reg code:" + GEN$(code&, 20))
+		ENDIF
+		dBUTTONS "Calc", 13, "Cancel", -27
+	UNTIL NOT (DIALOG = 13)
+ENDP
+
+PROC CreateRegCode&:(username$, key&)
+	LOCAL c%, code&
+	
+	c% = LEN(username$)
+	IF c% < 5
+		gIPRINT "User name must be long than 4 charaters"
+		RETURN 0
+	ENDIF
+	WHILE c% > 0
+		code& = code& + ASC(MID$(username$, c%, 1)) * key&
+		code& = code& AND &00FFFFFF
+		c%--
+	ENDWH
+	RETURN code&
+ENDP
+
+PROC CopyToClipboard:(s$)
+	lOPEN "C:\System\Data\Clpboard.cbd"
+	lPRINT CHECKUID$:(&10000037, &1000003B, 0);
+	lPRINT LEFT$(CHECKUID$:(LEN(s$) + 25, LEN(s$), 0), 8);
+	lPRINT s$;
+	lPRINT LEFT$(CHECKUID$:(&330200, &141000, 0), 10);
+	lCLOSE
+	gIPRINT "Copied"
+ENDP
+
+#INCLUDE "CheckRegCode.opl"

@@ -1,0 +1,5 @@
+PROC FgDoc%:(Doc$)
+	dINIT "LAUNCH"
+	dTEXT "", n$
+	DIALOG
+ENDP

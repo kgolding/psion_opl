@@ -1,0 +1,111 @@
+proc menvier$:(t$)
+	local r$(255), k$(1), c%
+	local istextcursor%
+
+	c% = 1
+	istextcursor% = -1
+	if t$ = ""
+		return
+	endif
+	while c% <= len(t$)
+		k$ = lower$(mid$(t$, c%, 1))
+		if (k$	>= "0") and (k$ <="9")
+			if istextcursor%
+				r$ = r$ + "B"
+				istextcursor% = 0
+			endif
+			r$ = r$ + k$
+		else
+			if k$ = "a"
+				r$ = r$ + "1"
+			elseif k$ = "b"
+				r$ = r$ + "1A"
+			elseif k$ = "c"
+				r$ = r$ + "1AA"
+			elseif k$ = "d"
+				r$ = r$ + "2C"
+			elseif k$ = "e"
+				r$ = r$ + "2C"
+			elseif k$ = "f"
+				r$ = r$ + "2A"
+			elseif k$ = "g"
+				r$ = r$ + "2AA"
+			elseif k$ = "h"
+				r$ = r$ + "3C"
+			elseif k$ = "i"
+				r$ = r$ + "3"
+			elseif k$ = "j"
+				r$ = r$ + "3A"
+			elseif k$ = "k"
+				r$ = r$ + "3AA"
+			elseif k$ = "l"
+				r$ = r$ + "3AAA"
+			elseif k$ = "m"
+				r$ = r$ + "4CC"
+			elseif k$ = "n"
+				r$ = r$ + "4C"
+			elseif k$ = "o"
+				r$ = r$ + "4"
+			elseif k$ = "p"
+				r$ = r$ + "4A"
+			elseif k$ = "q"
+				r$ = r$ + "4AA"
+			elseif k$ = "r"
+				r$ = r$ + "4AAA"
+			elseif k$ = "s"
+				r$ = r$ + "5CC"
+			elseif k$ = "t"
+				r$ = r$ + "5C"
+			elseif k$ = "u"
+				r$ = r$ + "5"
+			elseif k$ = "v"
+				r$ = r$ + "5A"
+			elseif k$ = "w"
+				r$ = r$ + "5AA"
+			elseif k$ = "x"
+				r$ = r$ + "5AAA"
+			elseif k$ = "y"
+				r$ = r$ + "5AAAA"
+			elseif k$ = "z"
+				r$ = r$ + "5AAAAA"
+			elseif k$ = ":"
+				r$ = r$ + "1CCCCCCC"
+			elseif k$ = ";"
+				r$ = r$ + "1CCCCCC"
+			elseif k$ = "<"
+				r$ = r$ + "1CCCCC"
+			elseif k$ = "-"
+				r$ = r$ + "1CCCC"
+			elseif k$ = ">"
+				r$ = r$ + "1CCC"
+			elseif k$ = "?"
+				r$ = r$ + "1CC"
+			elseif k$ = "@"
+				r$ = r$ + "1C"
+			elseif k$ = "!"
+				r$ = r$ + "0A"
+			elseif k$ = """"
+				r$ = r$ + "0AA"
+			elseif k$ = "#"
+				r$ = r$ + "0AAA"
+			elseif k$ = "$"
+				r$ = r$ + "0AAAA"
+			elseif k$ = "%"
+				r$ = r$ + "0AAAAA"
+			elseif k$ = "&"
+				r$ = r$ + "0AAAAAA"
+			elseif k$ = " "
+				r$ = r$ + ""
+			else
+				r$ = r$ + "???"
+			endif
+			if not istextcursor%
+				istextcursor% = -1
+				r$ = r$ + "B"
+			endif
+		endif
+		r$ = r$ + "9,"
+		c% = c% + 1
+	endwh
+	return left$(r$, len(r$) - 2)
+endp

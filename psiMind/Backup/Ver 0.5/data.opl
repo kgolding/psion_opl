@@ -1,0 +1,138 @@
+PROC ExportAsText:(n$, id&)
+	TRAP DELETE n$
+	LOPEN n$
+	BUSY "Exporting to text file"
+	pPrintChildren:(id&, 0, "")
+	LCLOSE
+	BUSY OFF
+ENDP
+
+PROC pPrintChildren:(id&, indent%, number$)
+	LOCAL bm%, p$(255), c%
+
+	Goto_id%:(id&, -1)
+	IF indent% > 0
+		p$ = REPT$(CHR$(9), indent%)
+	ENDIF
+	IF number$ <> ""
+		p$ = p$ + number$ + CHR$(9)
+	ENDIF
+	p$ = p$ + A.title$
+	
+	LPRINT p$
+	
+	IF Goto_parent%:(id&, -1)
+		DO
+			c%++
+			bm% = BOOKMARK
+			IF ExportFormat% = 2					REM Numbered
+				p$ = number$ + GEN$(c%, 5) + "."
+			ELSEIF ExportFormat% = 3			REM Numbered/Letter
+				IF (indent% AND 1) = 0	REM Odd indent
+					p$ = number$ + GEN$(c%, 5) + "."
+				ELSE
+					p$ = number$ + CHR$(c% + 64) + "."
+				ENDIF
+			ELSEIF ExportFormat% = 4			REM Roman
+				p$ = number$ + AsRoman$:(c%) + "."
+			ELSE													REM Plain
+				p$ = ""
+			ENDIF
+			pPrintChildren:(A.id&, indent% + 1, p$)
+			USE A
+			GOTOMARK bm%
+			KILLMARK bm%
+			NEXT
+		UNTIL NOT Goto_parent%:(id&, 0)
+	ENDIF
+ENDP
+
+PROC AsRoman$:(i%)
+	REM Returns the given number in Roman numerals
+	REM i% must be less than 1000
+	REM K.Golding 3/5/01
+	LOCAL i$(10), ret$(20), t$(20), c%
+
+	i$ = RIGHT$("000" + GEN$(i%, 3), 3)
+	IF MID$(i$, 1, 1) <> "0"
+		t$ = MID$("   C  CC CCC  CD   D  DC DCCDCCC  CM", (VAL(MID$(i$, 1, 1)) * 4) - 4, 4)
+	ENDIF
+	IF MID$(i$, 2, 1) <> "0"
+		t$ = t$ + MID$("   X  XX XXX  XL   L  LX LXXLXXX  XC", (VAL(MID$(i$, 2, 1)) * 4) - 4, 4)
+	ENDIF
+	IF MID$(i$, 3, 1) <> "0"
+		t$ = t$ + MID$("   I  II III  IV   V  VI VIIVIII  IX", (VAL(MID$(i$, 3, 1)) * 4) - 3, 4)
+	ENDIF
+	
+	REM Now remove extra spaces
+	c% = LEN(t$)
+	ret$ = ""
+	WHILE c% > 0
+		IF MID$(t$, c%, 1) <> " "
+			ret$ = ret$ + MID$(t$, c%, 1)
+		ENDIF
+		c%--
+	ENDWH
+	
+	RETURN ret$
+ENDP
+
+PROC DeleteAll:(deleteid&)
+	REM Deletes given item and all it's children
+	
+	BEGINTRANS	
+	pDeleteChildren:(deleteid&)
+	Goto_id%:(deleteid&, -1)
+	ERASE
+	COMMITTRANS
+ENDP
+
+PROC pDeleteChildren:(deleteid&)
+	REM Private recursively call proc
+	LOCAL temp&
+	
+	WHILE Goto_parent%:(deleteid&, -1)
+		temp& = A.id&
+		ERASE
+		pDeleteChildren:(temp&)
+	ENDWH
+	
+ENDP
+
+PROC Goto_parent%:(id&, first%)
+	USE A
+	IF first%
+		FIRST
+	ENDIF
+	WHILE NOT EOF
+		IF A.parent& = id&
+			RETURN -1
+		ENDIF
+		NEXT
+	ENDWH
+	RETURN 0
+ENDP
+
+PROC Goto_id%:(id&, first%)
+	USE A
+	IF first%
+		FIRST
+	ENDIF
+	WHILE NOT EOF
+		IF A.id& = id&
+			RETURN -1
+		ENDIF
+		NEXT
+	ENDWH
+	RETURN 0
+ENDP
+
+PROC NumberChildren%:(id&)
+	LOCAL c%
+	REM Returns number of childen for given item id
+	
+	OPEN """" + fname$ + """ SELECT parent FROM items WHERE parent=" + GEN$(id&, 20), Z, parent&
+	c% = COUNT
+	CLOSE
+	RETURN c%
+ENDP

@@ -1,0 +1,149 @@
+proc dv_init:(horz, vert)
+	local d%, i, h%
+
+	gcls
+	gat orgx, 0	:	glineby 0, gheight
+	gat 0, orgy%	:	glineby gwidth, 0
+	
+	if horz > 0
+		i = horz
+		h% = 0.5 * scaled%:(i)
+		do
+			d% = scaled%:(i)
+			gat orgx + d%, orgy%
+			glineby 0, 6
+			gmove 0, 12
+			gprintctr:(gen$(i,4))
+			
+			if h% > 2
+				gat orgx + d% - h%, orgy%
+				glineby 0, 4
+			endif
+
+			i = i + horz
+		until d% > 620
+	endif
+
+	if vert > 0
+		i = vert
+		h% = 0.5 * scaled%:(i)
+		do
+			d% = scaled%:(i)
+			gat orgx, orgy% - d%
+			glineby -6, 0
+			gmove -(orgx - 5), 7
+			gprintb gen$(i, 4), orgx - 5, 1
+
+			if h% > 2
+				gat orgx, orgy% - d% + h%
+				glineby -4, 0
+			endif
+
+			i = i + vert
+		until d% > orgy% - 20
+	endif
+endp
+
+proc dv_createtarget:(height)
+	local h1%, h2%, h3%, h4%, w1%, w2%, f%, f2%
+	
+	if targetgid% <> 0
+		gclose targetgid%
+	endif
+	
+	targeth% = scaled%:(height)
+	h1% = 0.4 * targeth%
+	h2% = h1%
+	h3% = targeth% - h1% - h2%
+	h4% = 0.33 * h3%
+	f% = 0.2 * h3%
+	f2% = 0.5 * f%
+	
+	targetw% = 0.6 * targeth%
+	w1% = 0.5 * targetw%
+	w2% = targetw% - w1%
+	
+	targetgid% = gcreatebit(targetw%, targeth%)
+
+	gat w1% - 1, targeth% - 3
+	gbox 3,3
+	
+	gat 0, targeth%
+
+	rem legs
+	glineby w1%, -h1%
+	glineby w2%, h1%
+	gmove -w2%, -h1%
+
+	rem body
+	glineby 0, -h2%
+	
+	rem arms
+	glineby -w1%, h2%
+	gmove w1% + w2%, 0
+	glineby -w2%, -h2%
+
+	rem head
+	glineby -h4%, -h4%
+	glineby 0, -h4% * 2
+	glineby h4% * 2, 0
+	glineby 0, h4% * 2
+	glineby -h4%, h4%
+
+	if f% > 2
+		rem face
+		gmove -f%, -f%
+		glineby f% * 2, 0
+		gmove -f%, -f%
+		glineby 0, -f%
+		gmove -f%, -f%
+		gbox f2%, f2%
+		gmove (f% * 2) -f2%, 0
+		gbox f2%, f2%
+	endif
+
+	guse 1
+endp
+
+proc dv_target:(title$, distance)
+	local titlewidth%
+		
+	gat scaled%:(distance) + orgx - (targetw% / 2), orgy% - targeth%
+	gcopy targetgid%, 0, 0, targetw%, targeth%, 2
+	
+endp
+
+proc dv_camera:(title$, height, viewangle, tilt)
+	local a, b
+	
+	gfont titlefont
+	
+	a = rad(tilt)
+	b = rad(viewangle + tilt)
+	
+	gat orgx + 5, orgy% - scaled%:(height)
+	gprint title$
+	
+	gat orgx, orgy% - scaled%:(height)
+	glineby cos(a) * 1000, sin(a) * 1000
+	
+	gat orgx, orgy% - scaled%:(height)
+	glineby cos(b) * 1000, sin(b) * 1000
+	
+endp
+
+proc autoscale:(maxheight)
+	scalefactor = flt(orgy%) / (maxheight * 1.1)
+endp
+
+proc scaled%:(units)
+	return units * scalefactor
+endp
+
+proc gprintctr:(text$)
+	local tw%
+	gfont titlefont
+	tw% = gTwidth(text$)
+	gmove -(tw%/2), 0
+	gprintb text$, tw%, 1
+endp

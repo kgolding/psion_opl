@@ -1,0 +1,19 @@
+PROC Main:
+	LOCAL x%, y%, i%, items%
+	
+	items% = 12
+	i% = 0
+	
+	WHILE i% < 360
+		
+		x% = SIN(RAD(i%)) * (gWIDTH / 3)
+		y% = COS(RAD(i%)) * (gHEIGHT / 3)
+		
+		gAT (gWIDTH / 2) + x%, (gHEIGHT / 2) - y%
+		gPRINT "Item number", i%
+		
+		i% = i% + (360 / items%)
+	ENDWH
+	
+	GET
+ENDP

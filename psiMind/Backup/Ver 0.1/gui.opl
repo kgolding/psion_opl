@@ -1,0 +1,83 @@
+PROC DrawDB:
+	LOCAL cX%, cY%, x%, y%, i%, items%
+	LOCAL mainTitle$(100), mainParent&
+
+	gui_counter% = 0
+	
+	cX% = gWIDTH / 2
+	cY% = gHEIGHT / 2
+	IF mainitem& = 0
+		mainitem& = 1
+	ENDIF
+	
+	REM Get and draw centre item
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE id=" + GEN$(mainitem&, 20), B, id&, parent&, title$, text$
+	mainTitle$ = B.title$
+	mainParent& = B.Parent&
+	USE B	:	CLOSE
+	
+	i% = 0
+	IF mainParent& > 0
+		Rem Get Draw Parent
+		OPEN """" + fname$ + """ SELECT * FROM items WHERE id=" + GEN$(mainParent&, 20), B, id&, parent&, title$, text$
+		x% = SIN(RAD(i%)) * (gWIDTH / 3)
+		y% = COS(RAD(i%)) * (gHEIGHT / 3)
+		gAT cX%, cY%
+		gLINEBY x%, -y%
+		DrawText:(cX% + x%, cY% - y%, B.title$, B.id&)
+		USE B	:	CLOSE
+	ENDIF
+
+	REM Get and draw child items
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE parent=" + GEN$(mainitem&, 20), B, id&, parent&, title$, text$
+	LAST
+	items% = COUNT + 1
+	FIRST
+	WHILE NOT EOF
+		i% = i% + (360 / items%)
+
+		x% = SIN(RAD(i%)) * (gWIDTH / 3)
+		y% = COS(RAD(i%)) * (gHEIGHT / 3)
+		
+		gAT cX%, cY%
+		gLINEBY x%, -y%
+		
+		DrawText:(cX% + x%, cY% - y%, B.title$, B.id&)
+		
+		USE B :	NEXT
+	ENDWH
+	CLOSE
+	
+	DrawText:(cX%, cY%, mainTitle$, mainitem&)
+	
+ENDP
+
+PROC DrawText:(x%, y%, s$, id&)
+	LOCAL xs%, xa%, ya%
+	LOCAL hasChildren%, postfix$(10)
+
+	REM Test if item has sub items
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE parent=" + GEN$(id&, 20), C, id&, parent&, title$, text$
+	hasChildren% = (COUNT > 0)
+	CLOSE
+	
+	IF hasChildren%
+		postfix$ = "..."
+	ELSE
+		postfix$ = ""
+	ENDIF
+	
+REM	xs% = gTWIDTH(s$ + postfix$ + " (" + GEN$(id&, 5) + ")")
+	xs% = gTWIDTH(s$ + postfix$)
+	xa% = x% - (xs% / 2)
+	ya% = y% + (fontheight% / 2) - fontdescent%
+	gAT xa%, ya%
+	gPRINTB s$ + postfix$, xs%, 3
+REM	gPRINTB s$ + postfix$ + " (" + GEN$(id&, 5) + ")", xs%, 3
+
+	gui_counter%++
+	gui_id&(gui_counter%) = id&
+	gui_x%(gui_counter%) = xa%
+	gui_y%(gui_counter%) = ya%
+	
+ENDP

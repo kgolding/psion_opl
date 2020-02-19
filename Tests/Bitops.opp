@@ -1,0 +1,16 @@
+INCLUDE "System.oxh"
+
+PROC Test:
+	LOCAL f%
+	
+	f% = SetBit%:(f%, 1, 1)
+	PRINT f%
+	f% = SetBit%:(f%, 2, 1)
+	PRINT f%
+	f% = SetBit%:(f%, 1, 0)
+	PRINT f%
+	
+	GET
+ENDP
+
+#INCLUDE "BitOps.opl"

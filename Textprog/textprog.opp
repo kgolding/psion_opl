@@ -1,0 +1,159 @@
+const Kversion$ = "1.1"
+include "system.oxh"
+
+app textprog, &100041B6
+	caption "TextProg", 1
+	icon "textprog.mbm"
+	icon "textprog.mbm"
+enda
+
+proc main:
+	local e&(16), exit%, text$(20)
+	local systype%, systype$(3, 20)
+	local sysproc$(3, 10), sysmaxlen%(3)
+
+	drawscreen:
+
+	systype% = 1
+	systype$(1) = "Menvier"
+	sysproc$(1) = "menvier"
+	sysmaxlen%(1) = 16
+
+	systype$(2) = "Galaxy 8-512"
+	sysproc$(2) = "galaxy"
+	sysmaxlen%(2) = 16
+
+	systype$(3) = "Galaxy 16+"
+	sysproc$(3) = "galaxy16"
+	sysmaxlen%(3) = 16
+
+	e&(1) = 19 rem Send app an %s key
+	do
+		if (e&(1) and $400) = 0
+			if e&(1) = 5 rem ctrl E
+				exit% = -1
+			elseif e&(1) = 1 rem ctrl A
+				dinit "About TEXTPROGammer " + Kversion$
+				dtext "", "This software is FREEWARE", 2
+				dtext "", " "
+				dtext "", "www.MrSecurity.com", 2
+				dtext "", " "
+				dtext "", "TEXPROG is (c) K. Golding 1999", 2
+				dialog
+			elseif e&(1) = 19 rem ctrl S
+				dinit "TEXT PROGrammer"
+				dposition 0, 1
+				dtext "", "Which type of system do you want to program?"
+				dchoice systype%, "System", systype$(1) + "," + systype$(2) + "," + systype$(3)
+				dialog
+				gat 2, gheight -5
+				gfont 268435956
+				gstyle 1
+				gprintb "(c) K. Golding 1999 - (" + systype$(systype%) + ")", gwidth - 4, 3
+				if text$ <> ""
+					drawtext:(text$, @$(sysproc$(systype%)):(text$))
+				endif
+			elseif e&(1) = 4150
+				minit
+				mcard "TEXTPROGrammer", "Change system", %s, "About", %a, "Exit", %e
+				e&(1) = menu - 96
+				continue
+			elseif (e&(1) >= 32) and (e&(1) <= 128)
+				text$ = gettext$:(chr$(e&(1)), sysmaxlen%(systype%))
+				drawtext:(text$, @$(sysproc$(systype%)):(text$))
+			elseif e&(1) = 13
+				text$ = gettext$:(text$, sysmaxlen%(systype%))
+				drawtext:(text$, @$(sysproc$(systype%)):(text$))
+			endif
+		elseif e&(1) = $404
+			if getcmd$ = "X"
+				exit% = -1
+			endif
+		endif
+		getevent32 e&()
+	until exit%
+endp
+
+proc drawtext:(text$, encoded$)
+	local c%, x%, y%, t%, w%
+	local e$(255)
+
+	if text$ = ""
+		return
+	endif
+
+	gfont 268435958
+	gstyle 0
+
+	gat 10, 30
+	gfill gwidth - 20, gheight - 50, 1
+
+	e$ = encoded$ + ","
+	x% = 10 : y% = 50
+	c% = 1
+	while c% <= len(text$)
+		t% = loc(e$, ",") - 1
+		w% = gtwidth(left$(e$, t%))
+		if x% + w% > gwidth - 10
+			x% = 10
+			y% = y% + 50
+		endif
+		gat x%, y%
+		gstyle 1
+		gprintb mid$(text$, c%, 1), w%, 3
+		gat x%, y% + 20
+		gstyle 0
+		gprintb left$(e$, t%), w%, 3
+		e$ = mid$(e$, t% + 2, 255)
+		c% = c% + 1
+		x% = x% + w% + 10
+	endwh
+endp
+
+proc gettext$:(t$, maxlen%)
+	local text$(50)
+	local threadid&, temp&
+
+	threadid& = GetThreadIDFromAppUid&:(&100041B6, temp&)
+	SendKeyEventToApp&:(threadid&, 0, 4099, KModifierCtrl&, 0, 0)
+	rem set max lenght of text
+	pokeb addr(text$) - 1, maxlen%
+	text$ = t$
+
+	dinit "Text description"
+	dtext "", "Enter the text to be programmed"
+	dedit text$, "Text", 20
+	if dialog
+		giprint gen$(len(text$), 3) + " charcters"
+		return text$
+	endif
+	return ""
+endp
+
+proc drawscreen:
+	gat 0,0
+	gborder 1, gwidth, gheight
+	gat 2, 25
+	gfont 268435959
+	gstyle 1
+	gprintb "Intruder alarm TEXT PROGrammer " + Kversion$, gwidth - 4, 3
+	gat 50, 70
+	gfont 268435957
+	gstyle 0
+	gprintb "To use: Just type in the text you'd like to program,", gwidth - 100, 3
+	gmove 0, 30
+	gprintb "press Enter and TextProg will show the text with", gwidth - 100, 3
+	gmove 0, 30
+	gprintb "the keypad presses below. Press enter to edit the last", gwidth - 100, 3
+	gmove 0, 30
+	gprintb "text entered or just type to start again!", gwidth - 100, 3
+endp
+
+#include "menvier.opp"
+#include "galaxy.opp"
+#include "galaxy16.opp"
+
+# REVISIONS
+# 27/4/99 -	When changing system type - screen is redrawn with
+# 						existing text shown in with new systems keypresses
+#						Incresed font size for decoded text

@@ -1,0 +1,13 @@
+PROC CheckRegCode:(username$, code&, key&)
+
+LOCAL c%, code&
+
+c% = LEN(username$)
+WHILE c% > 0
+code& = code& + ASC(MID$(username$, c%, 1)) * key&
+code& = code& AND &00FFFFFF
+c%=c%-1
+ENDWH
+
+RETURN (code& = key&)
+ENDP

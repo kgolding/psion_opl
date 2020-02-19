@@ -1,0 +1,130 @@
+PROC ExportAsText:(n$, id&)
+TRAP DELETE n$
+LOPEN n$
+BUSY "Exporting to text file"
+pPrintChildren:(id&, 0, "")
+LCLOSE
+BUSY OFF
+ENDP
+
+PROC pPrintChildren:(id&, indent%, number$)
+LOCAL bm%, p$(255), c%
+
+Goto_id%:(id&, -1)
+IF indent% > 0
+p$ = REPT$(CHR$(9), indent%)
+ENDIF
+IF number$ <> ""
+p$ = p$ + number$ + CHR$(9)
+ENDIF
+p$ = p$ + A.title$
+
+LPRINT p$
+
+IF Goto_parent%:(id&, -1)
+DO
+c%=c%+1
+bm% = BOOKMARK
+IF ExportFormat% = 2
+p$ = number$ + GEN$(c%, 5) + "."
+ELSEIF ExportFormat% = 3
+p$ = number$ + CHR$(c% + 64) + "."
+ELSEIF ExportFormat% = 4
+p$ = number$ + AsRoman$:(c%) + "."
+ELSE
+p$ = ""
+ENDIF
+pPrintChildren:(A.id&, indent% + 1, p$)
+USE A
+GOTOMARK bm%
+KILLMARK bm%
+NEXT
+UNTIL NOT Goto_parent%:(id&, 0)
+ENDIF
+ENDP
+
+PROC AsRoman$:(i%)
+LOCAL i$(10), ret$(20), t$(20), c%
+i$ = GEN$(i%, -3)
+
+IF i% > 99
+t$ = MID$("   C  CC CCC  CD   D  DC DCCDCCC  CM", VAL(MID$(i$), 3, 1) * 4, 4)
+ENDIF
+IF i% > 9
+t$ = t$ + MID$("   X  XX XXX  XL   L  LX LXXLXXX  XC", VAL(MID$(i$), 2, 1) * 4, 4)
+ENDIF
+IF i% > 0
+t$ = t$ + MID$("   I  II III  IV   V  VI VIIVIII  IX", VAL(MID$(i$), 1, 1) * 4, 4)
+ENDIF
+
+
+c% = LEN(t$)
+WHILE c% > 0
+IF MID$(t$, c%, 1) <> " "
+ret$ = ret$ + MID$(t$, c%, 1)
+ENDIF
+c%=c%+1
+ENDWH
+
+RETURN ret$
+ENDP
+
+PROC DeleteAll:(deleteid&)
+
+
+BEGINTRANS
+pDeleteChildren:(deleteid&)
+Goto_id%:(deleteid&, -1)
+ERASE
+COMMITTRANS
+ENDP
+
+PROC pDeleteChildren:(deleteid&)
+
+LOCAL temp&
+
+WHILE Goto_parent%:(deleteid&, -1)
+temp& = A.id&
+ERASE
+pDeleteChildren:(temp&)
+ENDWH
+
+ENDP
+
+PROC Goto_parent%:(id&, first%)
+USE A
+IF first%
+FIRST
+ENDIF
+WHILE NOT EOF
+IF A.parent& = id&
+RETURN -1
+ENDIF
+NEXT
+ENDWH
+RETURN 0
+ENDP
+
+PROC Goto_id%:(id&, first%)
+USE A
+IF first%
+FIRST
+ENDIF
+WHILE NOT EOF
+IF A.id& = id&
+RETURN -1
+ENDIF
+NEXT
+ENDWH
+RETURN 0
+ENDP
+
+PROC NumberChildren%:(id&)
+LOCAL c%
+
+
+OPEN """" + fname$ + """ SELECT parent FROM items WHERE parent=" + GEN$(id&, 20), Z, parent&
+c% = COUNT
+CLOSE
+RETURN c%
+ENDP

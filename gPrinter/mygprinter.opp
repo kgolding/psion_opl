@@ -1,0 +1,75 @@
+INCLUDE "gprinter.oxh"
+#define fontheight font&(3)
+#define fontdescent font&(4)
+
+PROC Main:
+
+
+	gpPageSetup:(16838, 11906, 800, 0, "Title", " ")
+	
+	gpPrintPreviewDialog:
+
+	
+ENDP
+
+PROC gpDraw:(lm&,tm&,w&,h&,page&,band1%,tlx&,tly&,brx&,bry&,ntext%,ngraphics%)
+	LOCAL step&, x&, y&, font&(48), col&(8)
+	LOCAL row&(10)
+	
+	gpsetcliprect:(tlx&,tly&,brx&-tlx&,bry&-tly&)
+	
+	step& = h& / 10
+	col&(1) = (h& - h&/20) / 6
+	col&(2) = col&(1) * 2
+	col&(3) = h&/20
+	col&(4) = col&(1)
+	col&(5) = col&(2)
+		
+	IF ntext% = 0
+		gpSetFont:("Arial", 16*20)
+		gpGetFontSpec:(font&())
+		row&(1) = tm& + fontheight
+		
+		gpAT:(lm&, tm& + fontheight)
+		gpPrint:("Quotation details")
+		gpMove:(0, fontheight)
+
+		gpSetFont:("Arial", 12*20)
+		gpGetFontSpec:(font&())
+		row&(2) = row&(1) + fontheight
+		row&(3) = row&(2) + fontheight
+
+		gpPrint:("Filename:")
+		gpMove:(0, fontheight)
+		gpPrint:("Whatever:")
+		
+		gpAt:(lm& + col&(1), row&(2))
+		gpMove:(0, fontheight)
+		gpPrint:("C:\XXX.XXX")
+		
+		
+		REM Footer
+		gpAT:(lm&, tm& + h&)
+		gpPrint:(DATIM$)
+
+		gpAT:(lm& + w&/2, tm& + h&)
+		gpPrintb:("© K. Golding 2000", w&/2, 1, 0, 0, 0)
+		
+		
+	ENDIF
+
+	IF ngraphics% = 0
+		
+		y& = tm& + step&
+		WHILE y& < tm& + h&
+			gpAT:(lm&, y&)
+			gpLineby:(w&, 0)
+			y& = y& + step&
+		ENDWH
+	ENDIF
+	
+ENDP
+
+PROC gpPages&:(w&,h&)
+	RETURN 1
+ENDP

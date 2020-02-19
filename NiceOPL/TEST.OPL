@@ -1,0 +1,12 @@
+REM This is my test input file for NiceOPL
+
+ProC Main:
+	LOcAl a$(255), p%
+	
+	a$ = "Kevin"
+	p% = 1
+	While p% <=n LEN(a$)
+		prinT Mid$(a$, p%, 1);
+		p%++
+	EndWH
+EndP

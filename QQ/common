@@ -1,0 +1,25 @@
+STRUCT quoteitem
+	type$(2)				// First character:
+									// Detection device, R=Remote Signalling method
+									// C=Control panel, S=Sounder, P=Processor/RIO
+									// Second character:
+									// Reserved for future use
+	code$(10)
+	item$(30)				// Short description
+	hours
+	cost
+	ma&							// + for power supplys and - for detectors
+	zones						// + for panels/processors and - for detection devices
+	zonetype				// what type of zone, 
+	cable&					// lenght of cable allowed for this item
+	cablecode$(10)	// what type of cable
+	field1$(200)		// user inputed text
+	field2$(200)
+	field3$(200)
+	field4$(200)
+ENDS
+
+PROC CommonInit:
+	
+ENDP
+

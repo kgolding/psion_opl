@@ -1,0 +1,409 @@
+INCLUDE "Const.oph"
+ 
+#define expire_year 2001
+#define expire_month 6
+#define version "0.7"
+#define legandx 350
+#define legandy 40
+#define legandw 190
+#define legandw2 80
+#define orgx 20
+#define titlefont 268435953
+#define legandfont 268435953
+#define bigfont 268435953
+#define instructiontext "Use the up/down keys to tilt the camera, or tap the base line"
+#define bannertext " CCTV Lens/Camera Demonstrator - "
+#define copyrighttext " - © K.Golding 2000"
+
+APP CCTV, &100041B8
+	ICON "CCTV icon.mbm"
+	ICON "CCTV icon.mbm"
+ENDA
+
+proc main:
+	global scalefactor, targetgid%, targetw%, targeth%
+	global imager_vertsize(3), imager_type$(3, 10), imager_choice$(200)
+	global viewangle, distnear, distfar
+	global horzviewnear, horzviewfar
+	global orgy%, exit%, tbVis%
+	rem The following go in the ini file
+	global imager%, overscan, registered%, registeredto$(20)
+	global targetsize, camheight, focallenght, tilt
+	
+	registeredto$ = "UNLICENCED"
+	
+	checkdate:
+	
+	imager_type$(1) = "1/2 inch"
+	imager_type$(2) = "1/3 inch"
+	imager_type$(3) = "1/4 inch"
+	imager_vertsize(1) = 4.8
+	imager_vertsize(2) = 3.6
+rem	imager_vertsize(3) = ?????
+	imager_choice$ = imager_type$(1) + "," + imager_type$(2)
+
+rem Set up defaults
+	orgy% = gheight - 20
+	scalefactor = 25
+	overscan = 10
+	viewangle = 40
+	tilt = 15
+	camheight = 3
+	focallenght = 4
+	targetsize = 1.6
+	imager% = 2
+	
+	ReadIniFile:
+
+rem	settings:
+	
+	draw_init:
+		
+	giprint instructiontext
+	
+	AppRun:
+	
+	WriteIniFile:
+	
+endp
+
+proc draw_update:
+
+	drawall:
+
+	gfont legandfont
+
+	gat legandx + legandw, legandy
+	gprintb fix$(tilt, 1, 4) + "°", legandw2, 1
+
+	gmove 0, 15
+	gprintb fix$(viewangle, 1, 4) + "°", legandw2, 1
+	
+	gmove 0, 15
+	gprintb fix$(focallenght, 1, 4) + "mm", legandw2, 1
+
+	gmove 0, 15
+	gprintb imager_type$(imager%), legandw2, 1
+
+	gmove 0, 15
+	gprintb fix$(distnear, 1, 5) + "/" + fix$(distfar, 1, 5), legandw2, 1
+
+	gmove 0, 15
+	gprintb fix$(horzviewnear, 1, 5) + "/" + fix$(horzviewfar, 1, 5), legandw2, 1
+		
+endp
+
+proc draw_init:
+	local s$(200)
+	
+	autoscale:(camheight)
+
+	dv_init:(1.0, 1.0)
+	
+	viewangle = angleofview:(imager%, focallenght)
+	
+	dv_createtarget:(targetsize)
+	
+	gfont bigfont
+	s$ = bannertext + registeredto$ + copyrighttext
+	gat gwidth - gtwidth(s$) - 1, 15
+	gxprint s$, 1
+	
+	gfont legandfont
+	
+	gat legandx - 5, legandy - 15
+	gbox legandw + legandw2 + 10, 5 + (6 * 15)
+
+	gat legandx, legandy
+	gprintb "Tilt down angle:", legandw, 2
+
+	gmove 0, 15
+	gprintb "Lens angle of view:", legandw, 2
+	
+	gmove 0, 15
+	gprintb "Lens focal length:", legandw, 2
+
+	gmove 0, 15
+	gprintb "Camera type:", legandw, 2
+
+	gmove 0, 15
+	gprintb "Near/far man distance:", legandw, 2
+
+	gmove 0, 15
+	gprintb "Near/far man horz view:", legandw, 2
+
+	gGmode 2
+	gTMode 2
+		
+	draw_update:
+endp
+
+proc AppRun:
+	local ev&(16)
+	local k%, shift%
+	local w%, x%, y%
+
+	do	
+		LOCK OFF
+		GETEVENT32 ev&()
+		LOCK  ON
+		IF (ev&(1) = $406) OR (ev&(1) = $407) OR (ev&(1) = $409) OR (ev&(1) = $40A)
+			REM Throw away keydown & keyup, pen enter/exit contact
+			CONTINUE
+		ENDIF
+		IF (ev&(1) AND $400) = 0			REM Keyboard event
+			k% = ev&(1)
+			shift% = (ev&(4) AND 2)
+			IF k% = KKeyMenu%
+				DoMenu:
+			ELSEIF (ev&(4) AND 4) = 4		REM Ctrl key
+				DoCommandKey:(96 + k% - shift% * 16)
+			ELSE												REM Normal key
+				KeyPressed:(k%, shift%)
+			ENDIF
+		ELSEIF (ev&(1) = $408	) AND (ev&(3) < 1024)				REM Pen event
+			rem Above (ev&(3) < 1024( ensure only valid window ids
+			w% = ev&(3)
+			x% = ev&(6)
+			y% = ev&(7)
+			busy off
+			IF ev&(4) = 0							REM Pen Down
+				PenDown:(w%, x%, y%)
+rem				ELSEIF ev&(4) = 1					REM Pen Up
+rem					PenUp:(w%, x%, y%)
+rem				ELSEIF ev&(4) = 6					REM Pen Dragged
+rem					PenDrag:(w%, x%, y%)
+			ENDIF
+		ELSEIF ev&(1) = 10000					REM SidebarMenu
+			DoMenu:
+		ELSEIF ev&(1) = $404					REM System event
+			if GETCMD$ = "X"
+				exit% = -1
+			endif
+		ENDIF
+	until exit%
+endp
+
+proc DoMenu:
+	minit
+	mcard "CCTV", "Settings", %s, "About", -%A, "Exit", %e
+	if not registered%
+		mcard "UNLICENCED - Expires " + expire_date$:, "Register", %R
+	endif
+	DoCommandKey:(MENU)
+endp
+
+proc TiltCamera:(newtilt)
+
+	drawall:
+		
+	if newtilt < 1
+		tilt = 1
+		giprint "Min camera tilt angle is 1 degree"
+	elseif newtilt > 89
+		tilt = 89
+		giprint "Max camera tilt angle is 89 degrees"
+	else
+		tilt = intf(newtilt)
+	endif
+
+rem 	giprint fix$(tilt, 2, 10), 3
+	draw_update:
+
+endp
+
+proc KeyPressed:(k%, shift%)	REM Deal with direct (non ctrl) keys
+rem	giprint gen$(k%,4)
+	if k% = 4106
+		TiltCamera:(tilt + 1)
+	elseif k% = 4105
+		TiltCamera:(tilt - 1)
+	elseif k% = %s
+		DoCommandKey:(%s)
+	else
+		giprint instructiontext
+	endif
+endp
+
+proc DoCommandKey:(k%)
+	if k% = %e
+		exit% = -1
+	elseif k% = %A
+		About:
+	elseif k% = %R
+		if registered%
+			giprint "This software has already been registered!"
+		else
+			register:
+		endif
+	elseif k% = %s
+		if settings:
+			draw_init:
+		endif
+	endif
+endp
+
+proc PenDown:(w%, x%, y%)
+	local dist, a
+	
+	if y% > (orgy% - 20)
+		if x% <= orgx
+			a = 90 - viewangle
+		else
+			dist = intf(x% - orgx) / scalefactor
+			a = intf(deg(atan(camheight/dist)))
+			a = a - viewangle
+		endif
+		TiltCamera:(a)
+	endif
+endp
+
+proc PenUp:(w%, x%, y%)
+endp
+
+proc PenDrag:(w%, x%, y%)
+endp
+
+
+proc drawall:
+
+	dv_camera:("Camera", camheight, viewangle, tilt)
+
+	onerr skip_far
+	distfar = tan(rad(90 - tilt)) * (camheight - targetsize)
+	dv_target:("Man 2", distfar)
+	horzviewfar = 0.0
+	skip_far::
+	
+	onerr skip_near
+	distnear = tan(rad(90 - tilt - viewangle)) * (camheight)
+	dv_target:("Man 1", distnear)
+	horzviewnear = 0.0
+	skip_near::
+	
+	onerr off
+	
+	if distnear >= distfar
+		giprint "WARNING - Angle of view to low, near man and far man reversed", 2
+	endif
+endp
+
+proc angleofview:(imager%, focallength)
+	local aov
+	aov = deg(atan(imager_vertsize(imager%) / (focallength * 2))) * 2
+	return aov * (100 - overscan) / 100
+endp
+
+proc expire_date$:
+	return "1/" + gen$(expire_month,2) + "/" + gen$(expire_year,4)
+endp
+
+proc checkdate:
+	if year >= expire_year
+		if month >= expire_month
+			alert("This BETA software has expired", "Contact kgolding@cix.co.uk for a newer version", "Exit")
+			STOP
+		endif
+	endif
+endp
+
+proc settings:
+	local d%
+	
+	do
+		dinit "Settings", 1
+		dfloat focallenght, "Lens focal lenght", 0.1, 300
+		dchoice imager%, "Camera type", imager_choice$
+		dfloat camheight, "Camera mounting height", 0.5, 20
+		dbuttons "Advance", %a, "Exit", -27, "OK", 13
+		d% = dialog
+		if d% = %a
+			advance_settings::
+			dinit "Advance settings", 1
+			dfloat targetsize, "Target height", 0.1, 10
+			dfloat overscan, "Overscan allowance (%)", 0, 50
+			dtext "", "", $800
+			dtext "", "You should normally leave all these", 2
+			dtext "", "settings at their defaults", 2
+			dbuttons "Defaults", %d, "Cancel", -27, "OK", 13
+			if dialog = %d
+				targetsize = 1.6
+				overscan = 10
+				goto advance_settings
+			endif
+		elseif d% = 0
+			break
+		endif
+		if camheight <= targetsize
+			giprint "ERROR - Camera must be mounted above the height of the target", 2
+			beep 5, 300
+			d% = 1
+		endif
+	until d% = 13
+	
+	return (d% = 13)
+endp
+
+proc About:
+	dinit "About", 1
+	dtext "", bannertext + registeredto$ + copyrighttext, 2
+	dtext "", "Shareware Version " + version, 2
+	dtext "", "", $800
+	dtext "", "For support contact kgolding@cix.co.uk", 2
+	dtext "", "This software expires " + expire_date$:, 2
+	dialog
+endp
+
+proc register:
+	dinit "Register", 1
+	dtext "", "This beta version can not be registered, please contact"
+	dtext "", "kgolding@cix.co.uk for a later version."
+	dbuttons "Cancel", -27
+	dialog
+endp
+
+PROC ReadIniFile:								REM Get ini file settings
+	LOCAL name$(255), off%(6)
+	name$ = PARSE$(".ini", CMD$(1), off%())
+	ONERR ErrReadIniFile
+	OPEN """" + name$ + """", I, tbVis%, imager%, overscan, registered%, registeredto$, targetsize, camheight, focallenght, tilt
+	tbVis% = I.tbVis%
+	imager% = I.imager%
+	overscan = I.overscan
+	registered% = I.registered%
+	registeredto$ = I.registeredto$
+	targetsize = I.targetsize
+	camheight = I.camheight
+	focallenght = I.focallenght
+	tilt = I.tilt
+	CLOSE
+ErrReadIniFile::
+	REM Ignore error and don't use ini file settings!
+	ONERR OFF
+ENDP
+
+PROC WriteIniFile:							REM Save ini file settings
+	LOCAL name$(255), off%(6)
+	
+	name$ = PARSE$(".ini", CMD$(1), off%())
+	TRAP DELETE name$
+	CREATE """" + name$ + """", I, tbVis%, imager%, overscan, registered%, registeredto$, targetsize, camheight, focallenght, tilt
+	INSERT
+	I.tbVis% = tbVis%
+	I.imager% = imager%
+	I.overscan = overscan
+	I.registered% = registered%
+	I.registeredto$ = registeredto$
+	I.targetsize = targetsize
+	I.camheight = camheight
+	I.focallenght = focallenght
+	I.tilt = tilt
+	PUT
+	CLOSE
+ENDP
+
+
+#include "drawview.opl"
+rem
+rem Version 0.7 Changes
+rem Made small changes for VGA screen sizes

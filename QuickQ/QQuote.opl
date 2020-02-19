@@ -1,0 +1,987 @@
+REM TODO
+REM Sort out why DRC SAS doesn't work on 5mx
+
+REM This file was created by AppFrame on Tue 18 Jul 2000 21:54:50
+REM AppFrame for the Psion 5, 5mx, 7 and Netbook, by K.Golding (C) 1999-2000
+REM Create by Version dated 3/7/00
+	
+INCLUDE "Const.oph"
+INCLUDE "System.oxh"
+INCLUDE "Printer.oxh"
+INCLUDE "nScrollbar.oph"
+	
+REM Define expire date for time limited software
+#define expire_year 2000
+#define expire_month 12
+
+REM Other defines
+#define maxitems 39
+#define maxpanels 5
+#define dialogswitchkey 32
+
+CONST KUidAppFrame& = &100041B7
+CONST KAppName$ = "QQuote"		REM Stick to one word upto 8 chars
+CONST Kcontact$ = "kgolding@cix.co.uk" REM Contact details
+CONST KcopyRight$ = "� K.Golding 1999-2000"	REM Copyright details
+	
+CONST Kzoommax% = 5						REM Maximum levels of zoom
+CONST KcmdN$ = "noemtkq"			REM Commands New/Open/Exit/Zoom/Toolbar/Prefs
+CONST KcmdS$ = "am"						REM Commands About/Zoom
+CONST KblankbitmapWidth% = 5		REM Width of blank bitmap
+	
+APP QQuote, KUidAppFrame&
+	FLAGS 1									REM Can create files
+	ICON "QQuote.mbm"				REM Icon
+	ICON "QQuote.mbm"				REM Icon mask
+ENDA
+	
+PROC Start:
+	DEFAULTWIN 1								REM Set default window to 4 colour mode
+	gIPRINT "Loading " + KAppName$
+	CheckExpired:
+	LOADM "Z:\System\OPL\Toolbar.opo"
+	tBarLink:("Start1")
+ENDP
+
+PROC Start1:
+	OPM_LoadModule:("nScrollbar")
+	REM Test for Revo
+	gUSE 1
+	IF gWIDTH<640 AND gHEIGHT<240
+		SBarLink:("Main",KSbarTypeRevo%) REM Revo scrollbars
+	ELSE
+		SBarLink:("Main",KSbarTypeNormal%) REM Normal scrollbars
+	ENDIF
+ENDP
+	
+PROC Main:
+	GLOBAL ev&(16), minit%			REM Current event, last menu item selected
+	GLOBAL redraw%							REM Set to false to prevent screen redraws whilst init.
+	GLOBAL cmdN$(26), cmdS$(26)	REM command keys allowed
+	GLOBAL fullscreenwidth%			REM Static, machines default width
+	GLOBAL fullscreenheight%		REM Static, machines default height
+	GLOBAL maxwidth%						REM maximum width after toolbar
+	GLOBAL exit%								REM Set True to exit program
+	GLOBAL fopen%							REM True if data file open
+	GLOBAL fname$(255)					REM Current opened file name
+	GLOBAL zoomlevel%					REM Current zoom level (1 to Kzoommax%)
+	GLOBAL zoomfont&(Kzoommax%)	REM Zoom font ID
+	GLOBAL fontheight%					REM Height of current zoom font
+	GLOBAL fontdescent%				REM Descent of current zoom font
+	GLOBAL blankbitmap&				REM Blank bitmap for toolbar
+		
+	GLOBAL btwidth%, btheight%, btcolwidth%, btvarwidth%
+	
+	GLOBAL tpwidth%, tpheight%, Gvsb%, Gitemhash%(maxitems)
+	GLOBAL tpid%
+	
+	GLOBAL Gcode$(maxitems, 10), Gitem$(maxitems, 40), Gqty&(maxitems), Gmin&(maxitems), Gmax&(maxitems)
+	GLOBAL Ghours(maxitems), Gcost(maxitems), Gcable&(maxitems), Gcablecode$(maxitems, 10), Gma&(maxitems)
+	GLOBAL Gzones(maxitems), Gspecial$(maxitems, 10)
+	
+	GLOBAL GPcode$(maxpanels, 10), GPitem$(maxpanels, 40), GPhours(maxpanels)
+	GLOBAL GPcost(maxpanels), GPma&(maxpanels), GPmaxzones&(maxpanels), GPonboardzones&(maxpanels)
+	GLOBAL GPcable&(maxpanels), GPcablecode$(maxpanels, 10)
+	GLOBAL GPselected%
+	
+	GLOBAL GTroundedhours, GThours, GTcost, GTzones&, GTma&
+	GLOBAL GTusedzones&
+	GLOBAL Glabourrate, Glabourcost, Gbasecost, Gadditionalcosts
+	GLOBAL Gsaleprice, Gmargin, Gbasicmaint, Gcompmaint
+	GLOBAL Gsparezones&
+	
+	GLOBAL mode% REM 1 = Customer, 2 = Consultant	
+	
+	Initialize:											REM Setup defaults, read ini settings & draw screen
+	
+	SystemEvent:(CMD$(3) + CMD$(2))		REM Deal with init system event
+	DoSetCmd:												REM Set up available user commands
+	
+	AppRun:													REM Call event handling loop
+	
+	WriteIniFile:										REM Save ini file settings
+	CloseFile:												REM Close users file
+ENDP
+	
+PROC DrawScreen:
+	LOCAL background%
+	IF NOT redraw% :RETURN :ENDIF
+		
+	gUSE 1														REM Use default screen
+	gUPDATE OFF
+	gSETWIN 0, 0, MaxWidth%, fullscreenheight%
+	gCLS
+	
+	background% = gLOADBIT("z:\system\data\eikon.mbm", 0, 0)
+	gUSE 1
+	gPATT background%, gWidth, gHeight, 3
+	gBOX gWIDTH, gHEIGHT
+	gCLOSE background%
+		
+	gXBORDER 2, $01
+	
+	btWidth% = gWIDTH - 10
+	btHeight% = FontHeight% * 4 + FontDescent% + 2
+	btColWidth% = (btWidth% - 10) / 2
+	btVarWidth% = btColWidth% / 2
+
+	gAT 5, gHEIGHT - btHeight% - 5
+	gFILL btWidth%, btHeight%, 1
+	gBOX btWidth%, btHeight%
+	gMOVE btColWidth% + 2, 0
+	gLINEBY 0, btHeight%
+	
+	tpWidth% = gWIDTH - 10
+	tpHeight% = gHEIGHT - 15 - btHeight%
+	
+	gAT 5, 5
+	gFILL tpWidth%, tpHeight%, 1
+	gBOX tpWidth%, tpHeight%
+
+	IF Gvsb% > 0
+		SBarClose:(Gvsb%)
+	ENDIF
+	Gvsb% = SBarCreate%:(KTrue%, 5 - 1 + tpWidth% - SBarWidth%:, 5 + 1, tpHeight% - 2, "DrawItems", KTrue%)
+	
+	gSTYLE 0
+
+	IF mode% = 2
+		gAT 5, gHEIGHT - btHeight% - 5	
+		gMOVE 5, FontHeight%
+		gXPRINT "Labour:", 0
+		gMOVE 0, FontHeight%
+		gXPRINT "Labour cost:", 0
+		gMOVE 0, FontHeight%
+		gXPRINT "Equipment cost:", 0
+		gMOVE 0, FontHeight%
+		gXPRINT "Base cost:", 0
+	ELSE
+		gAT 5, gHEIGHT - btHeight% - 5	
+		gMOVE 5, FontHeight%
+		gXPRINT "Fire and Security", 1
+	ENDIF
+
+	gAT 10 + 2, gHEIGHT - btHeight% - 5	
+	gMOVE btColWidth%, FontHeight%
+	IF mode% = 2
+		gXPRINT "Additional costs:", 0
+	ENDIF
+	gMOVE 0, FontHeight%
+	gSTYLE 1
+	gXPRINT "Sale price:", 0
+	gMOVE 0, FontHeight%
+	gXPRINT "Basic Maint.:", 0
+	gMOVE 0, FontHeight%
+	gXPRINT "Comp. Maint.:", 0
+		
+	UpdateToolBar:
+	UpdateScreen:
+	gUPDATE ON
+ENDP
+	
+PROC UpdateScreen:
+	LOCAL items%, i%
+	gUSE 1														REM Use default screen
+	gSTYLE 0
+	
+	IF not(fopen%)
+		BlankAll:
+	ELSE
+		UpdateTotals:
+	ENDIF
+	
+	GlabourCost = GTroundedhours * GlabourRate
+	GbaseCost = GTcost + GlabourCost
+	GsalePrice = ApplyMargin:(GbaseCost, Gmargin)
+
+	REM Calc how many lines for the scrollbar and set up itemhash
+	i% = 1
+	items% = 1
+	WHILE i% <= maxitems
+		IF (Gqty&(i%) > 0) 			REM AND (Gcode$(i%) <> "")
+			Gitemhash%(items%) = i%
+			items%++
+		ELSE
+			Gitemhash%(items%) = 0
+		ENDIF
+		i%++
+	ENDWH
+
+	IF tpid% > 0
+		gCLOSE tpid%
+	ENDIF
+	tpid% = gCREATEBIT(tpWidth% - 2, FontHeight% * items%)
+	SBarChange:(Gvsb%, 0,  tpHeight% - 2, 0, FontHeight% * items%, FontHeight%, FontHeight%)
+
+	gFONT zoomfont&(zoomlevel%)
+	
+	i% = 1
+	WHILE (i% <= maxitems) AND (Gitemhash%(i%) > 0)
+		gAT 0, FontHeight% * i%
+		gPRINTB GEN$(Gqty&(Gitemhash%(i%)), 5), 60, 1
+		gMOVE 70, 0
+		gPRINTB Gcode$(Gitemhash%(i%)), 80, 2
+		gMOVE 90, 0
+		gPRINTB Gitem$(Gitemhash%(i%)), 250, 2
+		gMOVE 260, 0
+		IF Gcable&(Gitemhash%(i%)) > 0
+			gPRINTB GEN$(Gcable&(Gitemhash%(i%)), 5) + "M ea.", 100, 1
+		ENDIF		
+		i%++
+	ENDWH
+	
+	gUSE 1
+	
+	DrawItems:(Gvsb%, &0)
+
+	IF mode% = 2
+		gAT 5, gHEIGHT - btHeight% - 5
+		gMOVE btColWidth% - btVarWidth%, FontHeight%
+		gPRINTB FIX$(GTroundedhours, 2, 8) + " @ �" + FIX$(GlabourRate, 2, 6), btVarWidth%, 1
+		gMOVE 0, FontHeight%
+		gPRINTB "�" + FIX$(GlabourCost, 2, 8), btVarWidth%, 1
+		gMOVE 0, FontHeight%
+		gPRINTB "�" + FIX$(GTcost, 2, 8), btVarWidth%, 1
+		gMOVE 0, FontHeight%
+		gPRINTB "�" + FIX$(Gbasecost, 2, 8), btVarWidth%, 1
+	ENDIF
+	
+	gAT 10 + 2, gHEIGHT - btHeight% - 5
+	gMOVE btColWidth% * 2 - btVarWidth%, FontHeight%
+	IF mode% = 2
+		gPRINTB "15.00", btVarWidth%, 1
+	ENDIF
+	gMOVE 0, FontHeight%
+	gSTYLE 1
+	gPRINTB "�" + FIX$(GsalePrice, 2, 8), btVarWidth%, 1
+	gMOVE 0, FontHeight%
+	gPRINTB "�" + FIX$(Gbasicmaint, 2, 8), btVarWidth%, 1
+	gMOVE 0, FontHeight%
+	gPRINTB "�" + FIX$(Gcompmaint, 2, 8), btVarWidth%, 1
+	gMOVE 0, FontHeight%
+	
+ENDP
+
+PROC DrawItems:(id%, val&)
+	LOCAL i%
+	IF id% = Gvsb%
+		gUPDATE OFF
+		gAT 6, 6
+		gFILL tpWidth% - 2, tpHeight% - 2, 1
+		gCOPY tpid%, 0, val&, tpWidth% - 2, tpHeight% - 2, 3
+		gUPDATE ON
+	ENDIF
+ENDP
+
+PROC UpdateToolBar:
+	LOCAL off%(6)
+	IF fopen%
+		PARSE$("*.*", fname$, off%())
+		tBarSetTitle:(MID$(fname$, off%(4), 8))
+	ELSE
+		tBarSetTitle:(KAppName$)
+	ENDIF
+ENDP
+	
+PROC AppPrint:								REM Print using print.opx
+	BUSY "Printing...", 1, 2
+	RESETPRINTING:
+
+	REM Set global format
+	SETFONTNAME:("Arial")
+	SETFONTHEIGHT:(12 * 20)
+	SETFONTWEIGHT:(1)
+	SETALIGNMENT:(0)
+
+	SETFONTHEIGHT:(18 * 20)
+	SETALIGNMENT:(1)
+	SENDSTRINGTOPRINTER:("QQuote")
+	SENDNEWPARATOPRINTER:
+	
+	SETFONTHEIGHT:(12 * 20)
+	SETFONTWEIGHT:(0)
+	SETALIGNMENT:(0)
+	SENDSTRINGTOPRINTER:(fname$)
+	
+	BUSY OFF
+ENDP
+	
+PROC CmdE%:										REM File/Exit %e
+	exit% = KTrue%
+ENDP
+	
+PROC CmdN%:										REM File/New %n
+	LOCAL n$(255)
+	
+	n$ = Pathed$:(fname$, "New Quotation")
+	
+	n$ = CREATEFILEDIALOG$:(n$)
+	IF n$ <> ""
+		CreateFile:(n$)
+	ENDIF
+ENDP
+	
+PROC CmdO%:										REM File/Open %o
+	LOCAL n$(255)
+	
+	n$ = OPENFILEDIALOG$:(GETDOC$, 0, 0, KUidAppFrame&)
+	IF n$ <> ""
+		OpenFile:(n$)
+	ENDIF
+ENDP
+	
+PROC CmdSC%:									REM File/Close %C
+	CloseFile:
+	DrawScreen:
+ENDP
+	
+PROC CmdSG%:									REM Save as %G
+	LOCAL n$(255)
+	IF NotAllowed%:(%G) :RETURN :ENDIF
+	n$ = CREATEFILEDIALOG$:(GETDOC$)
+	IF n$ <> ""
+		REM Save as n$
+	ENDIF
+ENDP
+	
+PROC CmdS%:										REM Save %s
+	IF NotAllowed%:(%S) :RETURN :ENDIF
+	REM Save
+	
+	SaveMemToFile:
+ENDP
+
+PROC CmdQ%:
+	mode%++
+	IF mode% > 2
+		mode% = 1
+	ENDIF
+	DrawScreen:
+ENDP
+
+PROC CmdR%:										REM Revert to saved %r
+	IF NotAllowed%:(%r) :RETURN :ENDIF
+	REM Revert to last save version
+	
+	dINIT "Revert to last save"
+	dTEXT "", "Are you sure?"
+	dButtons "Yes", %y, "No", %n
+	IF DIALOG = %y
+		LoadFileToMem:
+		UpdateScreen:
+	ENDIF
+	
+ENDP
+	
+PROC CmdK%:										REM Special/Prefernces
+	dINIT "Preferences"
+	dLONG Gsparezones&, "How many spares zones should be allowed for", 0, 99	
+	DIALOG
+	UpdateScreen:
+	DRC:
+ENDP
+
+PROC CmdV%:
+	dINIT "View Technical Details"
+	dTEXT "Zones used/max available:", GEN$(GTusedzones&, 5) + " / " + GEN$(GPmaxzones&(GPselected%), 5)
+	dTEXT "Available Zones:", GEN$(GPmaxzones&(GPselected%) - GTusedzones&, 5)
+	dTEXT "", "", $800
+	dTEXT "Available Power:", GEN$(GTma&, 5) + " mA"
+	dTEXT "", "", $800
+	dTEXT "Labour actual/rounded up:", FIX$(GThours, 2, 6) + "hrs / " + FIX$(GTroundedhours, 2, 6) + "hrs"
+	DIALOG
+ENDP
+
+PROC CmdSA%:									REM Special/About %A
+	dINIT "About " + KAppName$, 1 + 8
+	dTEXT "Contact:", "kgolding@cix.co.uk", 2
+	dTEXT "", KcopyRight$, $8002
+	dBUTTONS "OK", 13
+	DIALOG
+ENDP
+	
+PROC CmdSU%:									REM Page setup %U
+	PAGESETUPDIALOG:
+ENDP
+	
+PROC CmdSP%:									REM Print setup %P
+	PRINTRANGEDIALOG:
+ENDP
+	
+PROC CmdSV%:									REM Print preview %V
+	AppPrint:
+	PRINTPREVIEWDIALOG:
+ENDP
+	
+PROC CmdP%:										REM Print %p
+	AppPrint:
+	ONERR PrintError
+	PRINTDIALOG:
+	ONERR OFF
+	RETURN
+	PrintError::
+	ONERR OFF
+	gIPRINT ERR$(ERR)
+ENDP
+	
+PROC CmdC%:										REM Control Equipment
+	IF NotAllowed%:(%c) :RETURN :ENDIF
+	GetControls:
+	UpdateScreen:
+	DRC:
+ENDP
+
+PROC CmdD%:										REM Detection Devices
+	IF NotAllowed%:(%d) :RETURN :ENDIF
+	GetDetection:
+	UpdateScreen:
+	DRC:
+ENDP
+
+PROC CmdM%:										REM Zoom in %m
+	Zoom:(1)
+ENDP
+	
+PROC CmdSM%:									REM Zoom out %M
+	Zoom:(-1)
+ENDP
+	
+PROC CmdT%:										REM Toolbar on/off %t
+	IF tbVis%
+		tBarHide:
+		maxwidth% = fullscreenwidth%
+	ELSE
+		tBarShow:
+		maxwidth% = fullscreenwidth% - tbWidth%
+	ENDIF
+	DrawScreen:
+ENDP
+		
+PROC DoSetCmd:								REM Set up user commands
+REM This is called at the start of the program, after each call to
+REM a "Cmd" procedure, and whenever the data file changes
+	cmdN$ = KcmdN$							REM Enable standard commands
+	cmdS$ = KcmdS$
+	IF fopen%										REM If file is open then allow
+		cmdN$ = cmdN$ + "srp"			REM Save/Revert to saved/Print
+		cmdS$ = cmdS$ + "cgupv"		REM Close/Save as/Page setup/Print setup/Print preview
+		
+		cmdN$ = cmdN$ + "dcv"			REM Dectection/Controls/View Techs
+	ENDIF
+ENDP
+	
+PROC DoMenu:									REM Display users Menu
+	mINIT
+
+	mCASC "Printing", "Page setup...", m%:(%U), "Print setup...", m%:(%P), "Print preview...", m%:(%V), "Print...", m%:(%p)
+	mCASC "More", "Save as...", m%:(%G), "Save", m%:(%s), "Revert to saved", m%:(%r)
+	mCASC "Switch", "Customer view", Option%:($0900, (mode% = 1)), "Consultants view", Option%:($0B00, (mode% = 2))
+
+	mCARD "File", "New...", %n, "Open...", %o, "Close", -m%:(%C), "Printing>", 16, "More>", -16, "Close", %e
+	mCARD "Edit", "Detection Devices", m%:(%d), "Control Equipment", m%:(%c)
+	mCARD "View", "Zoom in", %m, "Zoom out", -%M, "Toobar", %t OR tbMenuSym%, "Switch>", -16, "Technical details", m%:(%v)
+	mCARD "Special", "Preferences...", %k, "About...", %A
+	DoCommandKey:(MENU(minit%))
+ENDP
+
+PROC Option%:(val%, selected%)
+	IF selected%
+		RETURN val% OR $2000 OR 16
+	ELSE
+		RETURN val% OR %q
+	ENDIF
+ENDP
+
+PROC KeyPressed:(k%, shift%)	REM Deal with direct (non ctrl) keys
+	IF (k% = 32) OR (k% = %d) OR (k% = 13)
+		CmdD%:
+	ELSEIF k% = %c
+		CmdC%:
+	ELSEIF k% = %v
+		CmdV%:
+	ENDIF
+ENDP
+	
+PROC PenDown:(wid%, x%, y%)		REM Pen Down
+ENDP
+	
+PROC PenUp:(wid%, x%, y%)			REM Pen Up
+ENDP
+	
+PROC PenDrag:(wid%, x%, y%)		REM Pen Dragged
+ENDP
+	
+PROC AppGotFocus:							REM Application has got focus
+ENDP
+	
+PROC AppLostFocus:						REM Application has lost focus
+ENDP
+	
+PROC MachineOn:								REM Machine turned on
+ENDP
+	
+PROC DoCutCopyPaste:					REM Sidebar menu cut/copy/paste
+	LOCAL ret%
+	
+	RETURN
+
+	ret% = mPOPUP(5, 40, 0, "Cut", m%:(%x), "Copy", m%:(%c), "Paste", m%:(%v))
+	IF ret% <> 0
+		DoCommandKey:(ret%)
+	ENDIF
+ENDP
+	
+PROC DoIRTxRx:								REM Sidebar menu infrared send/receive
+	LOCAL ret%
+	REM Take out the "+ $1000" to enable send/receive
+	ret% = mPOPUP(5, 90, 0, "Infrared send", 1 + $1000, "Infrared receive", 2 + $1000)
+	IF ret% = 1
+		REM Do Infrared Send
+	ELSEIF ret% = 2
+		REM Do Infrared Recieve
+	ENDIF
+ENDP
+	
+PROC Zoom:(by%)								REM Zoom in/out
+	LOCAL i&(48)
+	
+	zoomlevel% = zoomlevel% + by%
+	IF zoomlevel% < 1
+		zoomlevel% = 1
+	ELSEIF zoomlevel% > Kzoommax%
+		zoomlevel% = Kzoommax%
+	ENDIF
+	gFONT zoomfont&(zoomlevel%)
+	gINFO32 i&()
+	fontheight% = i&(3) + i&(4)		REM Set global total height off font
+	fontdescent% = i&(4)					REM Set global descent off font
+	DrawScreen:
+ENDP
+
+PROC SaveMemToFile:
+	LOCAL i%
+	
+	If NOT(fopen%)
+		ALERT("SaveMemToFile: called when a file is not open")
+		RETURN
+	ENDIF
+		
+	USE A
+	BEGINTRANS
+	
+	REM Erase all existing items
+	FIRST
+	WHILE NOT EOF
+		ERASE
+	ENDWH
+	
+	i% = 1
+	WHILE i% <= maxitems
+		INSERT
+		A.index% = i%
+		A.qty& = Gqty&(i%)
+		A.code$ = Gcode$(i%)
+		A.hours = Ghours(i%)
+		A.cost = Gcost(i%)
+		A.item$ = Gitem$(i%)
+		A.min% = Gmin&(i%)
+		A.max% = Gmax&(i%)
+		A.cable% = Gcable&(i%)
+		A.cablecode$ = Gcablecode$(i%)
+		A.ma% = Gma&(i%)
+		A.zones = Gzones(i%)
+		A.special$ = Gspecial$(i%)
+		PUT
+		i%++
+	ENDWH
+	COMMITTRANS
+ENDP
+
+PROC LoadFileToMem:
+	LOCAL i%
+	
+	If NOT(fopen%)
+		ALERT("LoadFileToMem: called when a file is not open")
+		RETURN
+	ENDIF
+	
+	BlankAll:
+
+	USE A
+	FIRST
+	WHILE NOT EOF
+		i% = A.index%
+		Gqty&(i%) = A.qty&
+		Gcode$(i%) = A.code$
+		Ghours(i%) = A.hours
+		Gcost(i%) = A.cost
+		Gitem$(i%) = A.item$
+		Gmin&(i%) = A.min%
+		Gmax&(i%) = A.max%
+		Gcable&(i%) = A.cable%
+		Gcablecode$(i%) = A.cablecode$
+		Gma&(i%) = A.ma%
+		Gzones(i%) = A.zones
+		Gspecial$(i%) = A.special$
+		NEXT
+	ENDWH
+	
+	USE B
+	FIRST
+ 	WHILE NOT EOF
+		i% = B.index%
+		GPcode$(i%) = B.code$
+		GPhours(i%) = B.hours
+		GPcost(i%) = B.cost
+		GPitem$(i%) = B.item$
+		GPonboardzones&(i%) = B.onboardzones%
+		GPmaxzones&(i%) = B.maxzones%
+		GPma&(i%) = B.ma%
+		GPcable&(i%) = B.cable%
+		GPcablecode$(i%) = B.cablecode$
+		NEXT
+	ENDWH
+
+ENDP
+
+PROC CreateFile:(f$)						REM Create users data file
+	CloseFile:
+	TRAP DELETE f$
+	ONERR ErrCreateFile
+	SETDOC f$
+	
+	REM Create file here
+	COPY Pathed$:(CMD$(1), "template.dat"), f$
+	
+	ONERR OFF
+	OpenFile:(f$)
+
+rem	fopen% = KTrue%
+rem	fname$ = f$
+rem	UpdateToolBar:
+rem	UpdateScreen:
+
+	CmdD%:
+
+	RETURN
+ErrCreateFile::
+	ONERR OFF
+	ALERT("Error creating '"+ f$ + "'", ERR$(ERR) + " (" + GEN$(ERR, 5) + ")")
+rem	SETDOC ""
+	UpdateToolBar:
+	UpdateScreen:
+ENDP
+	
+PROC OpenFile:(f$)							REM Open users data file
+	CloseFile:
+	ONERR ErrOpenFile
+	
+	REM Open file here
+	OPEN """" + f$ + """ SELECT * FROM Items", A, index%, qty&, code$, hours, cost, item$, min%, max%, cable%, cablecode$, ma%, zones, special$
+	OPEN """" + f$ + """ SELECT * FROM Panels", B, index%, code$, hours, cost, item$, onboardzones%, maxzones%, ma%, cable%, cablecode$
+		
+	ONERR OFF
+	SETDOC f$
+
+	fopen% = KTrue%
+	fname$ = f$
+
+	LoadFileToMem:
+
+	UpdateToolBar:
+	UpdateScreen:
+	RETURN
+
+	ErrOpenFile::
+	ONERR OFF
+rem	IF ERR <> KErrInUse%
+		ALERT("Error opening '"+ f$ + "'", ERR$(ERR) + " (" + GEN$(ERR, 5) + ")")
+rem	ENDIF
+	UpdateToolBar:
+	UpdateScreen:
+ENDP
+	
+PROC CloseFile:									REM Close file, even if not open!
+	IF NOT(fopen%) :RETURN :ENDIF
+	
+	SaveMemToFile:
+	
+	USE A
+	CLOSE
+
+	USE B
+	CLOSE
+	
+	BlankAll:
+
+	fopen% = KFalse%
+	fname$ = ""
+	UpdateScreen:
+	UpdateToolBar:
+ENDP
+	
+PROC ReadIniFile:								REM Get ini file settings
+	LOCAL name$(255), off%(6)
+	name$ = PARSE$(".ini", CMD$(1), off%())
+	ONERR ErrReadIniFile
+	OPEN """" + name$ + """", I, lastusedfile$, zoomlevel%, tbVis%, mode%, sparezones&
+	fname$ = I.lastusedfile$
+	zoomlevel% = I.zoomlevel%
+	tbVis% = I.tbVis%
+	mode% = I.mode%
+	Gsparezones& = I.sparezones&
+	CLOSE
+ErrReadIniFile::
+	REM Ignore error and don't use ini file settings!
+	ONERR OFF
+ENDP
+	
+PROC WriteIniFile:							REM Save ini file settings
+	LOCAL name$(255), off%(6)
+	
+	name$ = PARSE$(".ini", CMD$(1), off%())
+	TRAP DELETE name$
+	CREATE """" + name$ + """", I, lastusedfile$, zoomlevel%, tbVis%, mode%, sparezones&
+	INSERT
+	I.lastusedfile$ = fname$
+	I.zoomlevel% = zoomlevel%
+	I.tbVis% = tbVis%
+	I.mode% = mode%
+	I.sparezones& = Gsparezones&
+	PUT
+	CLOSE
+ENDP
+	
+PROC SystemEvent:(s$)						REM Deal with system event
+	LOCAL a$(1)
+	a$ = LEFT$(s$, 1)
+	IF a$ = "C"
+		CreateFile:(MID$(s$, 2, 255))
+	ELSEIF a$ = "O"
+		OpenFile:(MID$(s$, 2, 255))
+	ELSEIF a$ = "R"
+		IF EXIST(fname$)
+			OpenFile:(fname$)
+		ELSE
+			gIPRINT "Could not open last file"
+			CmdN%:											REM Offer to create new
+		ENDIF
+	ELSEIF a$ = "X"
+		exit% = KTrue%
+	ENDIF
+ENDP
+	
+PROC AppRun:											REM The main event handling loop
+	LOCAL k%, shift%
+	LOCAL w%, x%, y%
+	
+	DO
+		LOCK OFF
+		GETEVENT32 ev&()
+		IF (ev&(1) = $406) OR (ev&(1) = $407) OR (ev&(1) = $409) OR (ev&(1) = $40A)
+			REM Throw away keydown & keyup, pen enter/exit contact
+			CONTINUE
+		ENDIF
+		LOCK  ON
+		IF (ev&(1) AND $400) = 0			REM Keyboard event
+			k% = ev&(1)
+			shift% = (ev&(4) AND 2)
+			IF k% = KKeyMenu%
+				DoMenu:
+			ELSEIF (ev&(4) AND 4) = 4		REM Ctrl key
+				DoCommandKey:(96 + k% - shift% * 16)
+			ELSE												REM Normal key
+				KeyPressed:(k%, shift%)
+			ENDIF
+		ELSEIF ev&(1) = $408					REM Pen event
+			IF tBarOffer%:(ev&(3), ev&(4), ev&(6), ev&(7))
+				DoSetCmd:
+				CONTINUE
+			ELSEIF SBarOffer%:(ev&(3),ev&(4),ev&(6),ev&(7))
+				CONTINUE
+			ELSE
+				w% = ev&(3)
+				x% = ev&(6)
+				y% = ev&(7)
+				IF ev&(4) = 0							REM Pen Down
+					PenDown:(w%, x%, y%)
+				ELSEIF ev&(4) = 1					REM Pen Up
+					PenUp:(w%, x%, y%)
+				ELSEIF ev&(4) = 6					REM Pen Dragged
+					PenDrag:(w%, x%, y%)
+				ENDIF
+			ENDIF
+		ELSEIF ev&(1) = 10000					REM SidebarMenu
+			DoMenu:
+		ELSEIF ev&(1) = 10001					REM Cut/Copy/Paste
+			DoCutCopyPaste:
+		ELSEIF ev&(1) = 10002					REM IR Rx/Tx
+			DoIRTxRx:
+		ELSEIF ev&(1) = 10003					REM Zoom out
+			DoCommandKey:(%m)
+		ELSEIF ev&(1) = 10004					REM Zoom in
+			DoCommandKey:(%M)
+		ELSEIF ev&(1) = $401					REM App got focus
+			AppGotFocus:
+		ELSEIF ev&(1) = $402					REM App lost focus
+			AppLostFocus:
+		ELSEIF ev&(1) = $403					REM Machine switched on
+			MachineOn:
+		ELSEIF ev&(1) = $404					REM System event
+			SystemEvent:(GETCMD$)
+		ELSE 													REM Unknown event
+			gIPRINT "Unknown event " + GEN$(ev&(1), 8) + ", " + GEN$(ev&(2), 8) + ", " + GEN$(ev&(3), 8)
+		ENDIF
+	UNTIL exit%
+ENDP
+	
+PROC DoCommandKey:(k%)						REM Calls PROC's as required
+	LOCAL k$(1)
+	
+	k$ = CHR$(k%)
+	IF k$ > "Z"
+		IF LOC(cmdN$, k$)
+			@%("Cmd" + k$):
+			DoSetCmd:
+		ENDIF
+	ELSE
+		IF LOC(cmdS$, k$)
+			@%("CmdS" + k$):
+			DoSetCmd:
+		ENDIF
+	ENDIF
+ENDP
+	
+PROC NotAllowed%:(k%)						REM Returns true if command allowed
+	IF ((k% <= ASC("Z")) AND LOC(cmdS$, CHR$(k%))) OR ((k% >= ASC("a")) AND LOC(cmdN$, CHR$(k%)))
+		RETURN KFalse%
+	ELSE
+		gIPRINT "This item is not available", KBusyTopRight%
+		RETURN KTrue%
+	ENDIF
+ENDP
+	
+PROC m%:(k%)										REM Returns menu item dimmed if applicable
+	IF ((k% <= ASC("Z")) AND LOC(cmdS$, CHR$(k%))) OR ((k% >= ASC("a")) AND LOC(cmdN$, CHR$(k%)))
+		RETURN k%
+	ELSE
+		RETURN k% OR $1000
+	ENDIF
+ENDP
+	
+PROC Initialize:
+	SETCOMPUTEMODE:(KComputeModeOff&)	REM Give me speed, I'm a good program
+	SETFLAGS &010001									REM Enable machiine on events & auto compact of db
+	fopen% = KFalse%									REM No file open
+	redraw% = KFalse%									REM Switch off screen drawing whilst init.
+	fullscreenwidth% = gWIDTH					REM Before default window changes
+	fullscreenheight% = gHEIGHT				REM As above
+	
+	zoomlevel% = 3										REM Set zoom to middle
+	zoomfont&(1) = KFontArialNormal8&	REM Zoom font sizes
+	zoomfont&(2) = KFontArialNormal11&
+	zoomfont&(3) = KFontArialNormal13&
+	zoomfont&(4) = KFontArialNormal15&
+	zoomfont&(5) = KFontArialNormal18&
+		
+	IF IsColorMachine%:										REM Create blank bitmap
+		blankbitmap& = gCREATEBIT(0, KblankbitmapWidth%, $5)
+	ELSE
+		blankbitmap& = gCREATEBIT(0, KblankbitmapWidth%, $2)
+	ENDIF
+	gUSE 1																REM Switch back to screen
+	
+	tBarInit:(KAppName$, gWIDTH, gHEIGHT)
+	tBarButt:("n", 1, "New" + CHR$(10) + "Quotation", 0, blankbitmap&, blankbitmap&, 0)
+	tBarButt:("d", 2, "Detection" + CHR$(10) + "Devices", 0, blankbitmap&, blankbitmap&, 0)
+	tBarButt:("c", 3, "Control" + CHR$(10) + "Equipment", 0, blankbitmap&, blankbitmap&, 0)
+	tBarButt:("e", 4, "Close", 0, blankbitmap&, blankbitmap&, 0)
+	
+	GlabourRate = 24.00
+	Gmargin = 30
+	mode% = 1
+	
+	tbVis% = -1												REM Set toolbar visible by default
+	ReadIniFile:											REM Get ini file settings
+	
+	tbVis% = NOT tbVis%								REM Update toolbar
+	CmdT%:
+	
+	redraw% = KTrue%									REM Switch screen redrawing on
+	Zoom:(0)													REM Set font for zoom level	& draw screen
+ENDP
+	
+PROC Check%:(option%, flag%)				REM Returns true if option contains flag
+	RETURN (option% OR flag%) = flag%
+ENDP
+	
+PROC CopyStringToBuffer:(s$, buff&)
+	LOCAL i%
+	
+	POKEL buff&, LEN(s$)
+	WHILE i% < LEN(s$)
+		POKEB buff& + 4 + i%, ASC(MID$(s$, i% + 1, 1))
+		i% = i% + 1
+	ENDWH
+ENDP
+	
+PROC CopyBufferToString$:(buff&)
+	LOCAL i%, ret$(255), retaddr&
+	
+	IF (PEEKL(buff&) < 0) OR (PEEKL(buff&) > 255)
+		RAISE -1
+	ENDIF
+	WHILE i% < PEEKL(buff&)
+		ret$ = ret$ + CHR$(PEEKB(buff& + 4 + i%))
+		i% = i% + 1
+	ENDWH
+	RETURN ret$
+ENDP
+	
+PROC PrintMultiLine:(string$, maxwidth%, maxheight%)
+	LOCAL p%, s$(255), x%, y%
+	
+	x% = gX											REM Store current X, Y
+	y% = gY
+	s$ = string$
+	WHILE (s$ <> "") AND (gY < (y% + maxheight% - fontheight%))
+		p% = gPRINTCLIP(s$, maxwidth%)
+		s$ = MID$(s$, p% + 1, 255)
+		gAT x%, gY + fontheight%
+	ENDWH			
+ENDP
+	
+PROC IsColorMachine%:
+	local cinfo&(7)
+	
+	ONERR cerror
+	GCOLORINFO cinfo&()
+	IF cinfo&(2)									REM number of colours
+		RETURN -1 									REM colour screen
+	ENDIF
+	RETURN 0 											REM no colour
+	
+	cerror::
+	ONERR off
+	IF err= -96
+		RETURN 0 											REM no colour
+	ENDIF
+	RAISE ERR
+ENDP
+	
+PROC CheckExpired:
+	if year >= expire_year
+		if month >= expire_month
+			alert("This software has expired", "Contact " + Kcontact$ + " for a later version", "Exit")
+			STOP
+		endif
+	endif
+	gIPRINT "This software expires on 1/" + GEN$(expire_month, 2) + "/" + GEN$(expire_year, 4)
+ENDP
+
+PROC ApplyMargin:(cost, marg)
+	RETURN cost * (1+(marg/100)/(1-(marg/100)))
+ENDP
+
+#INCLUDE "Calcs.opp"
+#INCLUDE <LoadModule.opp>

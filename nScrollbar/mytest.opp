@@ -1,0 +1,51 @@
+INCLUDE "CONST.OPH"
+INCLUDE "nScrollbar.oph"
+
+PROC Init:
+	OPM_LoadModule:("nScrollbar")
+	
+	REM Test for Revo
+	gUSE 1
+	IF gWIDTH<640 AND gHEIGHT<240
+		SBarLink:("Start",KSbarTypeRevo%) REM Revo scrollbars
+	ELSE
+		SBarLink:("Start",KSbarTypeNormal%) REM Normal scrollbars
+	ENDIF
+ENDP
+
+PROC Start:
+	GLOBAL GSBportal%, GSBbitmap%, GSBhoriz%, GSBvert%, GSBx%, GSBy%
+	GLOBAL GSBmainwindow%
+	
+	LOCAL x%(6),mbm$(255),A&(20)
+	
+	REM Load MBM file
+	mbm$ = PARSE$("Demo.mbm",CMD$(1),x%())
+	GSBbitmap% = gLOADBIT(mbm$,0,0)
+	
+	CreateScrollBox:(100, 100, 200, 150)
+		
+	gUSE 1
+	
+	DO
+		GETEVENT32 A&()
+		
+		REM Offer events to SBar
+		IF A&(1)=KEvPtr&  REM If a pointer event, offer events to SBar
+			IF SBarOffer%:(A&(3),A&(4),A&(6),A&(7))
+				CONTINUE
+			ENDIF
+		ELSEIF (A&(1) AND &400)=0  REM If a key event, handle it
+			REM Escape exits
+			IF A&(1)=27
+				BREAK
+			ENDIF
+		ENDIF
+	
+	UNTIL 0
+	
+	CloseScrollBox:
+	
+ENDP
+
+#INCLUDE "ScrollBox"

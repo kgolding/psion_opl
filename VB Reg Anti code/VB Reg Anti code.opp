@@ -1,0 +1,58 @@
+PROC Main:
+	LOCAL pw$(12), anticode&, code&
+	
+	dINIT "Kevins Registration Anti code generator"
+	dTEXT "", "This program is password protected - of course!"
+	dXINPUT pw$, "Password:"
+	IF DIALOG
+		IF pw$ = "password"
+			pw$ = "TGYHJH"
+			anticode& = -1
+			WHILE -1
+				dINIT "Anti code generator"
+				dLONG code&, "Quoted code", 0, 99999999
+				IF anticode& <> -1
+					dTEXT "", "", $800
+					dTEXT "", "Code " + GEN$(code&, 20) + " = " + GEN$(anticode&, 20)
+				ENDIF
+				dBUTTONS "Calc", 13, "Quit", -27
+				IF DIALOG = 13
+					anticode& = CalcAntiCode&:(code&)
+				ELSE
+					BREAK
+				ENDIF
+			ENDWH
+		ELSE
+			BEEP 50, 300
+		ENDIF
+	ENDIF
+ENDP
+
+PROC CalcAntiCode&:(code&)
+	LOCAL i%, sn$(20), anticode&
+	
+	sn$ = GEN$(code&, 20)
+	WHILE i% < LEN(sn$)
+		i%++
+		IF (i% = 2) OR (i% = 5) OR (i% = 12)
+			anticode& = anticode& + VAL(MID$(sn$, i%, 1)) + 2
+		ELSEIF (i% = 1) OR (i% = 6) OR (i% = 9)
+			anticode& = anticode& * VAL(MID$(sn$, i%, 1))
+		ELSEIF (i% = 3) OR (i% = 8) OR (i% = 11)
+			anticode& = anticode& + VAL(MID$(sn$, i%, 1)) + 4
+		ELSEIF (i% = 4) OR (i% = 7) OR (i% = 10)
+			anticode& = Reverse&:(anticode&)
+		ENDIF
+	ENDWH
+	RETURN anticode&
+ENDP
+
+PROC Reverse&:(n&)
+	LOCAL i%, s$(20)
+	
+	WHILE i% < LEN(GEN$(n&, 20))
+		i%++
+		s$ = MID$(GEN$(n&, 20), i%, 1) + s$
+	ENDWH
+	RETURN VAL(s$)
+ENDP

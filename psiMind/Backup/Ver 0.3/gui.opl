@@ -1,0 +1,90 @@
+PROC DrawDB:
+	LOCAL cX%, cY%, x%, y%, i%, items%
+	LOCAL mainTitle$(100), mainParent&
+
+	gui_counter% = 0
+	
+	cX% = gWIDTH / 2
+	cY% = gHEIGHT / 2
+
+	IF mainitem& = 0
+		mainitem& = 1
+	ENDIF
+	
+	REM Get main item
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE id=" + GEN$(mainitem&, 20), B, id&, parent&, title$
+	mainTitle$ = B.title$
+	mainParent& = B.Parent&
+	USE B	:	CLOSE
+	
+	i% = -22
+	IF mainParent& > 0
+		gSTYLE 1
+		Rem Get and Draw Parent
+		OPEN """" + fname$ + """ SELECT * FROM items WHERE id=" + GEN$(mainParent&, 20), B, id&, parent&, title$
+		x% = SIN(RAD(i%)) * (gWIDTH / 3)
+		y% = COS(RAD(i%)) * ((gHEIGHT / 2) - fontheight%)
+		gAT cX%, cY%
+		gLINEBY x%, -y%
+		DrawText:(cX% + x%, cY% - y%, B.title$, B.id&)
+		USE B	:	CLOSE
+	ENDIF
+
+	REM Get and draw child items
+	gSTYLE 0
+	OPEN """" + fname$ + """ SELECT * FROM items WHERE parent=" + GEN$(mainitem&, 20), B, id&, parent&, title$
+	LAST
+	items% = COUNT + 1
+	FIRST
+	WHILE NOT EOF
+		i% = i% + (360 / items%)
+
+		x% = SIN(RAD(i%)) * (gWIDTH / 3)
+		y% = COS(RAD(i%)) * ((gHEIGHT / 2) - fontheight%)
+		
+		gAT cX%, cY%
+		gLINEBY x%, -y%
+		DrawText:(cX% + x%, cY% - y%, B.title$, B.id&)
+		
+		USE B :	NEXT
+	ENDWH
+	CLOSE
+	
+	REM Draw main item over the link lines
+	IF mainitem& = 1
+		gSTYLE 1
+	ENDIF
+
+	DrawText:(cX%, cY%, mainTitle$, mainitem&)
+	
+ENDP
+
+PROC DrawText:(x%, y%, s$, id&)
+	LOCAL xs%, xa%, ya%
+	LOCAL postfix$(10)
+
+	IF NumberChildren%:(id&)
+		postfix$ = "..."
+	ELSE
+		postfix$ = ""
+	ENDIF
+	
+	xs% = gTWIDTH(s$ + postfix$)
+	xa% = x% - (xs% / 2)
+	ya% = y% + (fontheight% / 2) - fontdescent%
+
+	gAT xa%, ya%	
+	gPRINTB s$ + postfix$, xs%, 3
+
+	gui_counter%++
+	gui_id&(gui_counter%) = id&
+	gui_x1%(gui_counter%) = xa% - 2
+	gui_y1%(gui_counter%) = y% - (fontheight% / 2) - 2
+	gui_x2%(gui_counter%) = xa% + xs% + 4
+	gui_y2%(gui_counter%) = y% + (fontheight% / 2) + 4
+
+REM Draw box around touch snesitive area
+REM	gAT gui_x1%(gui_counter%), gui_y1%(gui_counter%)
+REM	gBOX gui_x2%(gui_counter%) - gui_x1%(gui_counter%), gui_y2%(gui_counter%) - gui_y1%(gui_counter%)
+	
+ENDP

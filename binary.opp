@@ -1,0 +1,71 @@
+PROC main:
+	local h$(2), l&, b$(10)
+	
+	WHILE -1
+		h$ = ""
+		l& = 0
+		dInit "Hex to binary"
+		IF b$ <> ""
+			dTEXT h$, b$
+		ENDIF
+		dEDIT h$, "Hex", 4
+		dLONG l&, "Dec", 0, 255
+		IF DIALOG
+			IF h$ <> ""
+				l& = EVAL("&" + h$)
+			ENDIF
+			b$ = ""
+			print l&
+			IF l& > 127
+				b$ = b$ + "1"
+				l& = l& - 128
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 63
+				b$ = b$ + "1"
+				l& = l& - 64
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 31
+				b$ = b$ + "1"
+				l& = l& - 32
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 15
+				b$ = b$ + "1"
+				l& = l& - 16
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 7
+				b$ = b$ + "1"
+				l& = l& - 8
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 3
+				b$ = b$ + "1"
+				l& = l& - 4
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 1
+				b$ = b$ + "1"
+				l& = l& - 2
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+			IF l& > 0
+				b$ = b$ + "1"
+				l& = l& - 1
+			ELSE
+				b$ = b$ + "0"
+			ENDIF
+		ELSE
+			BREAK
+		ENDIF
+	ENDWH	
+ENDP

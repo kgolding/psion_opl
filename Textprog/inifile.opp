@@ -1,0 +1,12 @@
+proc getlastsystype%:
+	
+endp
+
+proc putsystype%:(val%)
+	
+endp
+
+proc inifile$:
+	local o%(6)
+	return parse$(".ini", cmd$
+endp

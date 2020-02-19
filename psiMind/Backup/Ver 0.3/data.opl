@@ -1,0 +1,59 @@
+PROC DeleteAll:(deleteid&)
+	REM Deletes given item and all it's children
+	
+	BEGINTRANS	
+	pDeleteChildren:(deleteid&)
+	Goto_id%:(deleteid&, -1)
+	ERASE
+	COMMITTRANS
+ENDP
+
+PROC pDeleteChildren:(deleteid&)
+	REM Private recursively call proc
+	LOCAL temp&
+	
+	WHILE Goto_parent%:(deleteid&, -1)
+		temp& = A.id&
+		ERASE
+		pDeleteChildren:(temp&)
+	ENDWH
+	
+ENDP
+
+PROC Goto_parent%:(id&, first%)
+	USE A
+	IF first%
+		FIRST
+	ENDIF
+	WHILE NOT EOF
+		IF A.parent& = id&
+			RETURN -1
+		ENDIF
+		NEXT
+	ENDWH
+	RETURN 0
+ENDP
+
+PROC Goto_id%:(id&, first%)
+	USE A
+	IF first%
+		FIRST
+	ENDIF
+	WHILE NOT EOF
+		IF A.id& = id&
+			RETURN -1
+		ENDIF
+		NEXT
+	ENDWH
+	RETURN 0
+ENDP
+
+PROC NumberChildren%:(id&)
+	LOCAL c%
+	REM Returns number of childen for given item id
+	
+	OPEN """" + fname$ + """ SELECT parent FROM items WHERE parent=" + GEN$(id&, 20), C, parent&
+	c% = COUNT
+	CLOSE
+	RETURN c%
+ENDP

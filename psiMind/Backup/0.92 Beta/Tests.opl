@@ -1,0 +1,133 @@
+PROC Tests:
+	GLOBAL width%, height%, fname$(255)
+	GLOBAL fontdescent%, fontheight%
+	GLOBAL i%, maxchildren&, totalitems&
+	LOCAL i&(48), d%
+		
+	dINIT "What to do?"
+	dBUTTONS "Draw all", %d, "Create sample data", %s, "Cancel", -27
+	d% = DIALOG
+	IF d% = %d
+		fname$ = OPENFILEDIALOG$:(fname$, 0, 0, KUidAppFrame&)
+		OPEN """" + fname$ + """ SELECT * FROM items", A, id&, parent&, title$, flags%
+		width% = gWIDTH
+		height% = gHEIGHT
+		gFONT KFontArialNormal8&
+		gINFO32 i&()
+		fontheight% = i&(3) + i&(4)		REM Set global total height off font
+		fontdescent% = i&(4)					REM Set global descent off font
+		DrawChildren:(width% / 2, height% / 2, 22, 359 + 22, &1)
+	ELSEIF d% = %s
+		fname$ = CREATEFILEDIALOG$:(fname$)
+		IF fname$ <> ""
+			testCreateSampleData:
+		ENDIF
+	ELSE
+		STOP
+	ENDIF
+	
+	BUSY "Done! Press any key to exit"
+	GET
+ENDP
+
+PROC testRandom&:(min&, max&)
+	RETURN min& + INT(RND * max&)
+ENDP
+
+PROC testCreateSampleData:
+	
+	REM Create file here
+	TRAP DELETE fname$
+	SETDOC fname$
+	CREATE """" + fname$ + """ FIELDS id,type(12),data(240) TO data", A, id&, type$, data$
+	INSERT
+	A.id& = 0
+	A.type$ = "ProgVer"
+	A.data$ = "Test Data"
+	PUT
+	CLOSE
+	
+	CREATE """" + fname$ + """ FIELDS id,parent,title(40),flags TO items", A, id&, parent&, title$, flags%
+
+	REM Add root item
+	INSERT
+	A.id& = &1
+	A.parent& = &0
+	A.title$ = "Test root item"
+	PUT
+	
+	totalitems& = 100
+	maxchildren& = 15
+	dINIT "Create Sample data"
+	dLONG totalitems&, "Total Items", 1, 1000
+	dLONG maxchildren&, "Max children per item", 1, 20
+	DIALOG
+	
+	i% = 2
+	
+	testAddChildren:(&1, maxchildren&)
+	
+ENDP
+
+PROC testAddChildren:(id&, qty&)
+	LOCAL c%
+	c% = qty&
+	WHILE c% > 0
+		IF i% >= totalitems& + 1
+			BREAK
+		ENDIF
+		INSERT
+		A.id& = i%
+		A.parent& = id&
+		A.title$ = "Item number " + GEN$(i%, 10)
+		PUT
+		i%++
+		c%--
+		testAddChildren:(A.id&, testRandom&:(&0, maxchildren&))
+	ENDWH	
+ENDP
+
+PROC testDrawChildren:(x%, y%, angle1%, angle2%, id&)
+	LOCAL ang%, step%, gotofirst%, numChildren%
+	LOCAL temp&
+	
+	Goto_id%:(id&, -1)
+	DrawText:(x%, y%, A.title$)
+	
+	numChildren% = numberChildren%:(id&)
+	IF numChildren% = 0
+		RETURN
+	ENDIF
+	IF numChildren% = 1
+		ang% = (angle1% + angle2%) / 2
+	ELSE
+		ang% = angle1%
+	ENDIF
+	step% = (angle2% - angle1%) / numChildren%
+	gotofirst% = -1
+	WHILE Goto_parent%:(id&, gotofirst%)
+		gAT x%, y%
+		gLINEBY SIN(RAD(ang%)) * 80, COS(RAD(ang%)) * 50
+		
+		temp& = A.id&
+		testDrawChildren:(gX, gY, ang% - (step% / 2), ang% + (step% / 2), A.id&)
+		
+		ang% = ang% + step%
+		Goto_id%:(temp&, -1)
+		gotofirst% = 0
+		NEXT
+	ENDWH
+	
+ENDP
+
+PROC testDrawText:(x%, y%, s$)
+	LOCAL xs%, xa%, ya%
+	
+	xs% = gTWIDTH(s$)
+	xa% = x% - (xs% / 2)
+	ya% = y% + (fontheight% / 2) - fontdescent%
+
+	gAT xa%, ya%	
+	gPRINTB s$, xs%, 3
+	
+ENDP

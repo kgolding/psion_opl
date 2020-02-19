@@ -1,0 +1,254 @@
+Include "Const.oph"
+Const ExpireYear% = 2000
+Const ExpireMonth% = 8
+
+APP LeaseCalc, &100041B9
+	ICON "LeaseCalc.mbm"
+	ICON "LeaseCalc.mbm"
+ENDA
+
+PROC Start:
+	DEFAULTWIN 1								REM Set default window to 4 colour mode
+	Busy "Loading LeaseCalc"
+	LOADM "Z:\System\OPL\Toolbar.opo"
+	tBarLink:("Main")
+ENDP
+
+PROC Main:
+	Global ev&(16), exit%
+	Global CmdN$(10), CmdS$(10)
+	Global b&
+	Global term%, amount, maint
+	Global menuinit%, maxWidth%
+
+	#include "globals.opp"
+
+	Init:
+	
+	lrInit:
+
+	tBarShow:
+	DrawScreen:
+	Busy Off
+	
+	CheckExpired:
+	
+	AppRun:
+
+ENDP
+
+PROC Init:
+	
+	maxWidth% = gWidth
+	term% = 2
+	
+	CmdN$ = "ehct"
+	CmdS$ = ""
+	
+	b& = gCREATEBIT(5,0)
+	gUSE 1
+	
+	tBarInit:("LeaseCalc", gWIDTH, gHEIGHT)
+	tBarButt:("c", 1, "Calc", 0, b&, b&, 0)
+	tBarButt:("h", 2, "Help", 0, b&, b&, 0)
+	tBarButt:("t", 3, "Hide", 0, b&, b&, 0)
+	tBarButt:("e", 4, "Exit", 0, b&, b&, 0)
+
+ENDP
+
+PROC CheckExpired:
+	If (Year >= ExpireYear%) AND (Month >= ExpireMonth%)
+		dInit "ERROR"
+		dText "", "This BETA test software has expired", 2
+		dText "", "Please contact kgolding@cix.co.uk for a later version", 2
+		dButtons "Quit", -27
+		Beep 5, 300
+		Dialog
+		Stop
+	Endif
+ENDP
+
+PROC DrawScreen:
+	Local temp%, temp$(200)
+
+	If tbVis%
+		gSetWin 0, 0, maxWidth% - tbWidth%, gHeight
+	Else
+		gSetWin 0, 0, maxWidth%, gHeight
+	Endif
+	
+	gFont 268435959
+	
+	gCls
+	
+	gAt 0,0
+	If tbVis%
+		gBox gWidth + 1, gHeight
+	Else
+		gBox gWidth, gHeight
+	Endif
+	
+	gAt 2, 20
+	gPrintb "First National Lease Calculator", gWidth - 4, 2
+	
+	temp$ = "© K.Golding 2000"
+	temp% = gTwidth(temp$)
+	gAt gWidth - temp% - 2, 20
+	gPrintb temp$, temp%, 1
+
+	gFont 268435957 
+
+	lrDrawRates:(10, 30, gWidth - 20, gHeight - 40)
+
+ENDP
+
+PROC DoMenu:
+	mInit
+	mCard "Menu", "Calculate", -%c, "Exit", %e
+	mCard "View", "Toolbar", -(%t OR tbMenuSym%), "Help", %h
+	DoCommandKey:(MENU(menuinit%))
+ENDP
+
+PROC DoCommandKey:(k%)						REM Calls PROC's as required
+	LOCAL k$(1)
+
+	k$ = CHR$(k%)
+	IF k$ > "Z"
+		IF LOC(cmdN$, k$)
+			@%("Cmd" + k$):
+		ENDIF
+	ELSE
+		IF LOC(cmdS$, k$)
+			@%("CmdS" + k$):
+		ENDIF
+	ENDIF
+ENDP
+
+PROC AppRun:											REM The main event handling loop
+	LOCAL k%, shift%
+	LOCAL w%, x%, y%
+
+	DO
+		LOCK OFF
+		GETEVENT32 ev&()
+		IF (ev&(1) = $406) OR (ev&(1) = $407) OR (ev&(1) = $409) OR (ev&(1) = $40A)
+			REM Throw away keydown & keyup, pen enter/exit contact
+			CONTINUE
+		ENDIF
+		LOCK  ON
+		IF (ev&(1) AND $400) = 0			REM Keyboard event
+			k% = ev&(1)
+			shift% = (ev&(4) AND 2)
+			IF k% = KKeyMenu%
+				DoMenu:
+			ELSEIF (ev&(4) AND 4) = 4		REM Ctrl key
+				DoCommandKey:(96 + k% - shift% * 16)
+			ELSE												REM Normal key
+rem				KeyPressed:(k%, shift%)
+			ENDIF
+		ELSEIF ev&(1) = $408					REM Pen event
+			IF tBarOffer%:(ev&(3), ev&(4), ev&(6), ev&(7))
+				CONTINUE
+			ELSE
+				w% = ev&(3)
+				x% = ev&(6)
+				y% = ev&(7)
+				IF ev&(4) = 0							REM Pen Down
+rem					PenDown:(w%, x%, y%)
+				ELSEIF ev&(4) = 1					REM Pen Up
+rem					PenUp:(w%, x%, y%)
+				ELSEIF ev&(4) = 6					REM Pen Dragged
+rem					PenDrag:(w%, x%, y%)
+				ENDIF
+			ENDIF
+		ELSEIF ev&(1) = 10000					REM SidebarMenu
+			DoMenu:
+		ELSEIF ev&(1) = 10001					REM Cut/Copy/Paste
+rem			DoCutCopyPaste:
+		ELSEIF ev&(1) = 10002					REM IR Rx/Tx
+rem			DoIRTxRx:
+		ELSEIF ev&(1) = 10003					REM Zoom out
+rem			CmdM%:
+		ELSEIF ev&(1) = 10004					REM Zoom in
+rem			CmdSM%:
+		ELSEIF ev&(1) = $401					REM App got focus
+rem			AppGotFocus:
+		ELSEIF ev&(1) = $402					REM App lost focus
+rem			AppLostFocus:
+		ELSEIF ev&(1) = $403					REM Machine switched on
+rem			MachineOn:
+		ELSEIF ev&(1) = $404					REM System event
+			SystemEvent:(GETCMD$)
+		ELSE 													REM Unknown event
+			gIPRINT "Unknown event " + GEN$(ev&(1), 8) + ", " + GEN$(ev&(2), 8) + ", " + GEN$(ev&(3), 8)
+		ENDIF
+	UNTIL exit%
+ENDP
+
+PROC SystemEvent:(s$)						REM Deal with system event
+	LOCAL a$(1)
+
+	a$ = LEFT$(s$, 1)
+	IF a$ = "X"
+		exit% = KTrue%
+	ENDIF
+ENDP
+
+PROC CmdT%:										REM Toolbar on/off %t
+	IF tbVis%
+		tBarHide:
+	ELSE
+		tBarShow:
+	ENDIF
+	DrawScreen:
+ENDP
+
+PROC CmdE%:
+	exit% = -1
+ENDP
+
+PROC CmdH%:
+	dInit "LeaseCalc - HELP"
+	dText "", "Press the Calc button and choose the term of the lease"
+	dText "", "Where a 3 year term would have 1 initial payment and"
+	dText "", "a further 19 payments per quarter"
+	dText "", "Enter the standard (as quoted) installation charge and"
+	dText "", "rented maintenance charge. Then press Enter"
+	
+	Dialog
+ENDP
+
+PROC CmdC%:
+	Local payment
+	
+	dInit "Calculate Lease Payments"
+	dChoice term%, "Term", lrTermChoice$:
+	dFloat amount, "Installation charge", 1000, 40000
+	dFloat maint, "Normal maintanance charge (p/a)", 0, 20000
+	dButtons "Calculate", 13, "Cancel", -27
+	If Dialog = 13
+		payment = lrRatePerThousand:(term%, amount) * amount / 1000
+		payment = payment + (maint / 4)
+		dInit "Lease Payments Summery"
+		dText "Term", lrTerm$(term%)
+		dText "Normal installation charge", Currency$:(amount)
+		dText "Normal mainanance charge (p/a)", Currency$:(maint)
+		dText "Lease repayment per qtr (ex Vat)", Currency$:(payment)
+		dText "Lease repayment per qtr (inc Vat)", Currency$:(PlusVat:(payment))
+rem		dText "Lease repayment rate per thousand", Currency$:(lrRatePerThousand:(term%, amount))
+
+		dButtons "OK", 13
+		Dialog
+	Endif
+
+ENDP
+
+PROC Currency$:(amount)
+	Return "£" + Fix$(amount, 2, 10)
+ENDP
+
+PROC PlusVat:(exvat)
+	Return 0.01 * Int((exvat * 100) * 1.175)
+ENDP
+
+#include "lease_mod.opp"

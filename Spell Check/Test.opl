@@ -1,0 +1,19 @@
+INCLUDE "Spell.oxh"
+
+PROC Main:
+	GLOBAL SpellAlt$(255)
+	LOCAL s$(200)
+	
+	s$ = "The quick broown fox jummped over the lazy cow."
+	
+	dINIT "SpellCheck"
+	dEDIT s$, "String", 30
+	IF DIALOG
+		s$ = SpellCheck$:(s$)
+	ENDIF
+	dINIT "Done"
+	dTEXT "", s$
+	DIALOG
+ENDP
+
+#INCLUDE "SpellCheck.opp"
